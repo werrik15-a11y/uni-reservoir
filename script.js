@@ -3,7 +3,7 @@
 // ==========================================
 
 // ⚠️ Ссылка на CSV для чтения данных (остается старой)
-const GOOGLE_SHEET_CSV_URL = "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_НА_CSV";
+const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1YXlVa45KE5sqTvgzGFLnMkk_Rarr_vwjroVDNhq6UxA/edit?hl=ru&gid=0#gid=0";
 
 // 🔐 Ссылка на Web App из Шага 1 для ЗАПИСИ данных со страниц админки
 const GOOGLE_SCRIPT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby3HPz6B8zJeIbSEGou0y1Cd3BttJ5DMc3JMA2AKCK5FZmhyZlA6lpIbSlRSlpmZN4/exec";
