@@ -6,7 +6,7 @@
 const GOOGLE_SHEET_CSV_URL = "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_НА_CSV";
 
 // 🔐 Ссылка на Web App из Шага 1 для ЗАПИСИ данных со страниц админки
-const GOOGLE_SCRIPT_WEB_APP_URL = "СЮДА_ВСТАВЬТЕ_URL_ВЕБ_ПРИЛОЖЕНИЯ_ИЗ_APPS_SCRIPT";
+const GOOGLE_SCRIPT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby3HPz6B8zJeIbSEGou0y1Cd3BttJ5DMc3JMA2AKCK5FZmhyZlA6lpIbSlRSlpmZN4/exec";
 
 // 🔐 Пароль лидера
 const ADMIN_PASSWORD = "UNI_LEADER_2026";
