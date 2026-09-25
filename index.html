@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UNI Alliance - Резервуар</title>
-    <!-- Связываем HTML со стилями -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,10 +11,10 @@
     <header>
         <div class="alliance-logo">⭐ UNI ALLIANCE</div>
         <nav>
-            <button class="nav-link active" onclick="switchTab('welcome')">Приветствие</button>
-            <button class="nav-link" onclick="switchTab('map')">Карта и Здания</button>
-            <button class="nav-link" onclick="switchTab('distribution')">Распределение</button>
-            <button class="nav-link" onclick="switchTab('admin')">Панель Управления 🔒</button>
+            <button class="nav-link active" onclick="safeSwitchTab('welcome', this)">Приветствие</button>
+            <button class="nav-link" onclick="safeSwitchTab('map', this)">Карта и Здания</button>
+            <button class="nav-link" onclick="safeSwitchTab('distribution', this)">Распределение</button>
+            <button class="nav-link" onclick="safeSwitchTab('admin', this)">Панель Управления 🔒</button>
         </nav>
     </header>
 
@@ -49,7 +48,7 @@
                             </tr>
                         </thead>
                         <tbody id="buildingsTableBody">
-                            <!-- Заполняется из script.js -->
+                            <!-- Заполняется из скрипта -->
                         </tbody>
                     </table>
                 </div>
@@ -58,12 +57,19 @@
 
         <!-- ВКЛАДКА 2: РАСПРЕДЕЛЕНИЕ -->
         <div id="distribution" class="tab-content">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h2>Текущее распределение сил по точкам</h2>
-                <button class="btn btn-success" onclick="calculateDistribution()">Сбалансировать команды</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
+                <h2>Распределение сил по этапам</h2>
+                <button class="btn btn-success" onclick="calculateDistribution()">⚡ Рассчитать тактику</button>
             </div>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button class="btn btn-secondary active-phase" id="btnPhase1" onclick="switchPhase(1)">🕒 До 15 минут</button>
+                <button class="btn btn-secondary" id="btnPhase2" onclick="switchPhase(2)">🕒 До 30 минут</button>
+                <button class="btn btn-secondary" id="btnPhase3" onclick="switchPhase(3)">🕒 До конца</button>
+            </div>
+
             <div class="teams-grid" id="distributionGrid">
-                <!-- Заполняется из script.js -->
+                <!-- Сюда скрипт выведет карточки распределения -->
             </div>
         </div>
 
@@ -88,7 +94,7 @@
                     </tr>
                 </thead>
                 <tbody id="adminTableBody">
-                    <!-- Заполняется из script.js -->
+                    <!-- Заполняется из скрипта -->
                 </tbody>
             </table>
         </div>
@@ -98,7 +104,18 @@
         <img src="https://imgur.com" alt="Карта Крупно">
     </div>
 
-    <!-- Связываем HTML с логикой JavaScript -->
+    <!-- Встроенная защита переключения вкладок, которая сработает в любом случае -->
+    <script>
+        function safeSwitchTab(tabId, buttonElement) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+            
+            const targetTab = document.getElementById(tabId);
+            if (targetTab) targetTab.classList.add('active');
+            if (buttonElement) buttonElement.classList.add('active');
+        }
+    </script>
     <script src="script.js"></script>
 </body>
 </html>
+
