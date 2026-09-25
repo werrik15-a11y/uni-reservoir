@@ -37,6 +37,34 @@ window.onload = function() {
         return;
     }
 
+    // ТРЮК ОБХОДА КЭША: Добавляем к ссылке текущее время, чтобы браузер не брал её из кэша
+    // Это гарантирует обход ошибки CORS 307 и моментальную загрузку ников!
+    const nocacheUrl = GOOGLE_SHEET_CSV_URL + (GOOGLE_SHEET_CSV_URL.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
+
+    // Скачиваем данные союза UNI напрямую без блокировок
+    fetch(nocacheUrl)
+        .then(response => {
+            if (!response.ok) throw new Error('Ошибка получения данных таблицы');
+            return response.text();
+        })
+        .then(csvText => {
+            parseGoogleSheetCSV(csvText);
+            loadSavedAttendance();
+            sortPlayers();
+            calculateDistribution(); // Сразу перерасчитываем тактическую сетку
+            
+            renderBuildingsTable();
+            renderAdminTable();
+            updateCounters();
+        })
+        .catch(error => {
+            console.error('Ошибка CORS / Загрузки:', error);
+            alert('Сайту не удалось прочитать Google Таблицу напрямую. Пожалуйста, убедитесь, что вы открыли доступ в таблице: синяя кнопка Поделиться -> Общий доступ -> Все, у кого есть ссылка (Читатель)');
+            renderBuildingsTable();
+        });
+};
+
+
     fetch(GOOGLE_SHEET_CSV_URL)
         .then(response => response.text())
         .then(csvText => {
