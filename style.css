@@ -243,3 +243,11 @@ input, select {
     align-items: center;
 }
 .modal img { max-width: 95%; max-height: 95%; border-radius: 4px; }
+
+.active-phase { background-color: var(--accent-color) !important; color: white !important; }
+
+.active-phase {
+    background-color: var(--success-color) !important;
+    border-color: var(--success-color) !important;
+    color: white !important;
+}
