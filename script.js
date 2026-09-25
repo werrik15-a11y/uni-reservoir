@@ -3,7 +3,7 @@
 // ==========================================
 
 // ✅ ИСПРАВЛЕНО: Ссылка преобразована в чистый CSV-поток для идеального импорта ников
-const GOOGLE_SHEET_CSV_URL = "https://google.com";
+const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTivUu_TjZphuspUCedVqZnmSLpgFTZDfVDnnvln6WapFSvekyKm-8UMukuaOfQ0VIbK_zOs5xeWEJD/pub?gid=0&single=true&output=csv";
 
 // 🔐 Ссылка на Web App для отправки галок (остается вашей)
 const GOOGLE_SCRIPT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby3HPz6B8zJeIbSEGou0y1Cd3BttJ5DMc3JMA2AKCK5FZmhyZlA6lpIbSlRSlpmZN4/exec";
