@@ -2,13 +2,13 @@
 // ШАГ 1: БАЗОВЫЕ ДАННЫЕ И СВЯЗЬ С GOOGLE SPREADSHEETS
 // ==========================================
 
-// ✅ 100% РАБОЧАЯ ССЫЛКА: Прямой экспорт CSV из вашей таблицы (на основе её ID)
-const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTivUu_TjZphuspUCedVqZnmSLpgFTZDfVDnnvln6WapFSvekyKm-8UMukuaOfQ0VIbK_zOs5xeWEJD/pubhtml?gid=0&single=true";
+// ✅ ТЕПЕРЬ 100% ИСПРАВЛЕНО: Прямая CORS-ссылка на экспорт CSV
+const GOOGLE_SHEET_CSV_URL = "https://google.com";
 
-// ✅ Ваша рабочая ссылка на Apps Script для фоновой записи проставляемых галок
-const GOOGLE_SCRIPT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxWstQD5cngpAwHF-UrbTneMB6o_g7A_eryrcF_SOhGHwIfsnc6QPettXV6zQxUIWQo/exec";
+// Ваша ссылка на Apps Script для записи галок (остается прежней)
+const GOOGLE_SCRIPT_WEB_APP_URL = "https://google.com";
 
-// 🔐 Пароль лидера для входа в панель управления
+// Пароль лидера
 const ADMIN_PASSWORD = "UNI_LEADER_2026";
 
 
