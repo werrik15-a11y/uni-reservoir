@@ -238,8 +238,13 @@ function renderBuildingsTable() {
     `).join('');
 }
 
+// Функции управления первой картой
 function openModal() { const m = document.getElementById('mapModal'); if(m) m.style.display = 'flex'; }
 function closeModal() { const m = document.getElementById('mapModal'); if(m) m.style.display = 'none'; }
+
+// Функции управления второй картой (Новые)
+function openModal2() { const m = document.getElementById('mapModal2'); if(m) m.style.display = 'flex'; }
+function closeModal2() { const m = document.getElementById('mapModal2'); if(m) m.style.display = 'none'; }
 
 // ==========================================
 // ШАГ 4: МАТЕМАТИЧЕСКИЙ АЛГОРИТМ "ЗМЕЙКА"
