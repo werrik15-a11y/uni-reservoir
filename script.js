@@ -22,39 +22,53 @@ let lastDistribution = JSON.parse(localStorage.getItem('uni_distribution')) || {
 let currentPhase = 1;
 
 window.onload = function() {
-    fetch('players.json')
-        .then(response => {
-            if (!response.ok) throw new Error('Не удалось найти файл players.json');
-            return response.json();
-        })
-        .then(data => {
-            players = data.map(p => ({
-                name: p.name,
-                power: parseFloat(p.power) || 0,
-                points: parseInt(p.points) || 0,
-                status: 'none',  
-                attended: null   
-            }));
-            
-            // УМНАЯ СОРТИРОВКА: Сначала по БМ, а если БМ одинаковая (например, 0) — то по Очкам РР
-            sortPlayers();
-            
-            renderBuildingsTable();
-            renderAdminTable();
-            renderDistributionGrid();
-        })
-        .catch(error => {
-            console.error('Ошибка загрузки состава:', error);
-            renderBuildingsTable();
-        });
+    // ПРОВЕРКА ПАМЯТИ: Если в браузере уже сохранен измененный список игроков, берем его
+    let savedPlayers = localStorage.getItem('uni_players');
+    
+    if (savedPlayers) {
+        players = JSON.parse(savedPlayers);
+        sortPlayers();
+        initApp();
+    } else {
+        // Если памяти нет (первый запуск), скачиваем чистый players.json
+        fetch('players.json')
+            .then(response => {
+                if (!response.ok) throw new Error('Не удалось найти файл players.json');
+                return response.json();
+            })
+            .then(data => {
+                players = data.map(p => ({
+                    name: p.name,
+                    power: parseFloat(p.power) || 0,
+                    points: parseInt(p.points) || 0,
+                    status: 'none',  
+                    attended: null   
+                }));
+                sortPlayers();
+                saveData(); // Фиксируем скачанный состав в LocalStorage
+                initApp();
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки состава:', error);
+                renderBuildingsTable();
+            });
+    }
 };
+
+// Вспомогательная функция для одновременного запуска всех таблиц
+function initApp() {
+    renderBuildingsTable();
+    renderAdminTable();
+    updateCounters(); // Считаем галки сразу при загрузке
+    renderDistributionGrid();
+}
 
 function sortPlayers() {
     players.sort((a, b) => {
         if (b.power !== a.power) {
-            return b.power - a.power; // Сортировка по убыванию БМ
+            return b.power - a.power;
         }
-        return b.points - a.points; // Если БМ равна, сортируем по убыванию Очков РР
+        return b.points - a.points;
     });
 }
 
@@ -85,7 +99,6 @@ function renderAdminTable() {
             <button class="attendance-btn ${player.attended === false ? 'absent' : ''}" onclick="toggleAttendance(${index}, false)">❌</button>
         `;
 
-        // Если БМ равна 0, выводим прочерк, как вы и просили
         let powerDisplay = player.power > 0 ? player.power : '—';
         let pointsDisplay = player.points > 0 ? player.points.toLocaleString() : '—';
 
@@ -100,6 +113,17 @@ function renderAdminTable() {
             </tr>
         `;
     }).join('');
+}
+
+function updateCounters() {
+    let mainCount = players.filter(p => p.status === 'main').length;
+    let reserveCount = players.filter(p => p.status === 'reserve').length;
+
+    const mainEl = document.getElementById('countMain');
+    const reserveEl = document.getElementById('countReserve');
+    
+    if (mainEl) mainEl.innerText = mainCount;
+    if (reserveEl) reserveEl.innerText = reserveCount;
 }
 
 function addPlayer() {
@@ -117,20 +141,21 @@ function addPlayer() {
     });
     
     sortPlayers();
-    saveData();
+    saveData(); // Теперь новые игроки надежно сохраняются в браузер
     renderAdminTable();
+    updateCounters();
     
     nameInput.value = '';
     powerInput.value = '';
     pointsInput.value = '';
 }
 
-// (Функции удаления, статусов и явки остаются прежними)
 function deletePlayer(index) {
     if (confirm(`Удалить игрока ${players[index].name}?`)) {
         players.splice(index, 1);
         saveData();
         renderAdminTable();
+        updateCounters();
     }
 }
 
@@ -139,14 +164,28 @@ function togglePlayerStatus(index) {
     if (currentStatus === 'none') players[index].status = 'main';
     else if (currentStatus === 'main') players[index].status = 'reserve';
     else players[index].status = 'none';
-    saveData();
+    
+    saveData(); // Сохраняем статус галки
     renderAdminTable();
+    updateCounters(); // Пересчитываем живой счетчик
 }
 
 function toggleAttendance(index, attendedValue) {
     players[index].attended = (players[index].attended === attendedValue) ? null : attendedValue;
     saveData();
     renderAdminTable();
+}
+
+// Новая функция: Полный сброс всех галок основы и резерва
+function resetAllStatuses() {
+    if (confirm("Вы точно хотите обнулить списки основы и резерва? Это действие сбросит все галки у игроков.")) {
+        players.forEach(p => {
+            p.status = 'none';
+        });
+        saveData();
+        renderAdminTable();
+        updateCounters();
+    }
 }
 
 // ==========================================
@@ -175,6 +214,7 @@ function closeModal() { const m = document.getElementById('mapModal'); if(m) m.s
 // ШАГ 4: МАТЕМАТИЧЕСКИЙ АЛГОРИТМ "ЗМЕЙКА"
 // ==========================================
 
+// Переключатель временных фаз
 function switchPhase(phaseNumber) {
     currentPhase = phaseNumber;
     document.getElementById('btnPhase1').classList.remove('active-phase');
@@ -184,6 +224,7 @@ function switchPhase(phaseNumber) {
     renderDistributionGrid();
 }
 
+// Главная функция расчета
 function calculateDistribution() {
     let activePlayers = players.filter(p => p.status === 'main');
     if (activePlayers.length === 0) {
@@ -195,6 +236,7 @@ function calculateDistribution() {
     let pool = [...activePlayers]; // Список уже идеально отсортирован (БМ + РР)
 
     // --- ЭТАП 1: ДО 15 МИНУТ ---
+    // Солнечная станция: Топ-1 БМ + 2 средних игрока
     let captain = pool.shift(); 
     let phase1Solar = [captain];
     if (pool.length > 0) {
@@ -204,10 +246,12 @@ function calculateDistribution() {
     }
     dist.phase1["solar"] = { name: "Солнечная станция", players: phase1Solar.filter(Boolean) };
 
+    // Вертолетная площадка: забираем 3 игроков из оставшегося хвоста пула (самых слабых)
     let phase1Heli = [];
     for(let i=0; i<3; i++) { if(pool.length > 0) phase1Heli.push(pool.pop()); }
     dist.phase1["heliport"] = { name: "Вертолетная площадка", players: phase1Heli };
 
+    // Распределяем «Змейкой» всех оставшихся игроков по 6 основным линиям
     let lines = ["water_1", "water_2", "factory_1", "factory_2", "factory_3", "factory_4"];
     lines.forEach(id => {
         let name = id.includes("water") ? "Водоочистительный центр " + id.slice(-1) : "Водоперерабатывающий завод " + id.slice(-1);
@@ -234,9 +278,9 @@ function calculateDistribution() {
     dist.phase2["center_res"] = { name: "Центральный резервуар", players: [captain] };
     
     // Выделяем Топ-2, Топ-3 и Топ-4 под тактические спецобъекты со скрина
-    let top2 = activePlayers[1] ? activePlayers[1] : null;
-    let top3 = activePlayers[2] ? activePlayers[2] : null;
-    let top4 = activePlayers[3] ? activePlayers[3] : null;
+    let top2 = activePlayers[1] || null;
+    let top3 = activePlayers[2] || null;
+    let top4 = activePlayers[3] || null;
     
     dist.phase2["solar"] = { name: "Солнечная станция", players: top2 ? [top2] : [] };
     dist.phase2["military"] = { name: "Военный завод", players: top3 ? [top3] : [] };
@@ -303,4 +347,3 @@ function renderDistributionGrid() {
         `;
     }).join('');
 }
-
