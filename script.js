@@ -1,6 +1,9 @@
 // ==========================================
-// ШАГ 1: БАЗОВЫЕ ДАННЫЕ И ИНИЦИАЛИЗАЦИЯ
+// ШАГ 1: БАЗОВЫЕ ДАННЫЕ И СВЯЗЬ С GOOGLE SPREADSHEETS
 // ==========================================
+
+// ⚠️ ВСТАВЬТЕ СЮДА ВАШУ ССЫЛКУ НА CSV ИЗ GOOGLE ТАБЛИЦ (МЕЖДУ КАВЫЧКАМИ)
+const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTivUu_TjZphuspUCedVqZnmSLpgFTZDfVDnnvln6WapFSvekyKm-8UMukuaOfQ0VIbK_zOs5xeWEJD/pub?gid=0&single=true&output=csv";
 
 const buildingsData = [
     { id: "center_res", name: "Центральный резервуар", time: "через 15 минут", capture: 9000, hold: 1200, bonus: "-", maxPlayers: 8 },
@@ -22,58 +25,94 @@ let lastDistribution = JSON.parse(localStorage.getItem('uni_distribution')) || {
 let currentPhase = 1;
 
 window.onload = function() {
-    // ПРОВЕРКА ПАМЯТИ: Если в браузере уже сохранен измененный список игроков, берем его
-    let savedPlayers = localStorage.getItem('uni_players');
-    
-    if (savedPlayers) {
-        players = JSON.parse(savedPlayers);
-        sortPlayers();
-        initApp();
-    } else {
-        // Если памяти нет (первый запуск), скачиваем чистый players.json
-        fetch('players.json')
-            .then(response => {
-                if (!response.ok) throw new Error('Не удалось найти файл players.json');
-                return response.json();
-            })
-            .then(data => {
-                players = data.map(p => ({
-                    name: p.name,
-                    power: parseFloat(p.power) || 0,
-                    points: parseInt(p.points) || 0,
-                    status: 'none',  
-                    attended: null   
-                }));
-                sortPlayers();
-                saveData(); // Фиксируем скачанный состав в LocalStorage
-                initApp();
-            })
-            .catch(error => {
-                console.error('Ошибка загрузки состава:', error);
-                renderBuildingsTable();
-            });
+    if (GOOGLE_SHEET_CSV_URL === "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_НА_CSV" || !GOOGLE_SHEET_CSV_URL) {
+        alert("Ошибка: Сначала вставьте вашу опубликованную CSV ссылку из Google Таблиц в начало файла script.js!");
+        renderBuildingsTable();
+        return;
     }
+
+    // Скачиваем самые свежие данные из вашей Google таблицы
+    fetch(GOOGLE_SHEET_CSV_URL)
+        .then(response => {
+            if (!response.ok) throw new Error('Не удалось получить данные Google таблицы');
+            return response.text();
+        })
+        .then(csvText => {
+            // Парсим CSV данные построчно
+            parseGoogleSheetCSV(csvText);
+            
+            // Восстанавливаем галки и явку из памяти браузера, чтобы они не слетали
+            loadSavedStatuses();
+            
+            sortPlayers();
+            initApp();
+        })
+        .catch(error => {
+            console.error('Ошибка загрузки Google Таблицы:', error);
+            alert('Не удалось загрузить состав из Google Таблиц. Проверьте публикацию ссылки.');
+            renderBuildingsTable();
+        });
 };
 
-// Вспомогательная функция для одновременного запуска всех таблиц
+function parseGoogleSheetCSV(text) {
+    // Разбираем текст по строкам
+    const lines = text.split(/\r?\n/);
+    players = [];
+
+    // Пропускаем первую строку (заголовки Игрок, БМ, Очки) и идем по остальным
+    for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        
+        // Разделяем столбцы (в CSV это обычно запятая или точка с запятой)
+        const columns = lines[i].split(/[,;]/);
+        
+        if (columns[0] && columns[0].trim()) {
+            players.push({
+                name: columns[0].trim(),
+                power: parseFloat(columns[1]) || 0,
+                points: parseInt(columns[2]) || 0,
+                status: 'none',  
+                attended: null   
+            });
+        }
+    }
+}
+
+// Загрузка сохраненных состояний галок
+function loadSavedStatuses() {
+    let savedData = localStorage.getItem('uni_player_statuses');
+    if (!savedData) return;
+    
+    let statusMap = JSON.parse(savedData);
+    players.forEach(p => {
+        if (statusMap[p.name]) {
+            p.status = statusMap[p.name].status || 'none';
+            p.attended = statusMap[p.name].attended !== undefined ? statusMap[p.name].attended : null;
+        }
+    });
+}
+
+// Принудительное сохранение проставленных галок в память
+function saveStatuses() {
+    let statusMap = {};
+    players.forEach(p => {
+        statusMap[p.name] = { status: p.status, attended: p.attended };
+    });
+    localStorage.setItem('uni_player_statuses', JSON.stringify(statusMap));
+}
+
 function initApp() {
     renderBuildingsTable();
     renderAdminTable();
-    updateCounters(); // Считаем галки сразу при загрузке
+    updateCounters();
     renderDistributionGrid();
 }
 
 function sortPlayers() {
     players.sort((a, b) => {
-        if (b.power !== a.power) {
-            return b.power - a.power;
-        }
+        if (b.power !== a.power) return b.power - a.power;
         return b.points - a.points;
     });
-}
-
-function saveData() {
-    localStorage.setItem('uni_players', JSON.stringify(players));
 }
 
 // ==========================================
@@ -84,7 +123,7 @@ function renderAdminTable() {
     const tbody = document.getElementById('adminTableBody');
     if (!tbody) return;
     if (players.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Список пуст. Добавьте игроков.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Список пуст. Проверьте Google Таблицу.</td></tr>`;
         return;
     }
 
@@ -118,10 +157,8 @@ function renderAdminTable() {
 function updateCounters() {
     let mainCount = players.filter(p => p.status === 'main').length;
     let reserveCount = players.filter(p => p.status === 'reserve').length;
-
     const mainEl = document.getElementById('countMain');
     const reserveEl = document.getElementById('countReserve');
-    
     if (mainEl) mainEl.innerText = mainCount;
     if (reserveEl) reserveEl.innerText = reserveCount;
 }
@@ -141,19 +178,17 @@ function addPlayer() {
     });
     
     sortPlayers();
-    saveData(); // Теперь новые игроки надежно сохраняются в браузер
+    saveStatuses();
     renderAdminTable();
     updateCounters();
     
-    nameInput.value = '';
-    powerInput.value = '';
-    pointsInput.value = '';
+    nameInput.value = ''; powerInput.value = ''; pointsInput.value = '';
 }
 
 function deletePlayer(index) {
     if (confirm(`Удалить игрока ${players[index].name}?`)) {
         players.splice(index, 1);
-        saveData();
+        saveStatuses();
         renderAdminTable();
         updateCounters();
     }
@@ -165,24 +200,21 @@ function togglePlayerStatus(index) {
     else if (currentStatus === 'main') players[index].status = 'reserve';
     else players[index].status = 'none';
     
-    saveData(); // Сохраняем статус галки
+    saveStatuses();
     renderAdminTable();
-    updateCounters(); // Пересчитываем живой счетчик
+    updateCounters();
 }
 
 function toggleAttendance(index, attendedValue) {
     players[index].attended = (players[index].attended === attendedValue) ? null : attendedValue;
-    saveData();
+    saveStatuses();
     renderAdminTable();
 }
 
-// Новая функция: Полный сброс всех галок основы и резерва
 function resetAllStatuses() {
-    if (confirm("Вы точно хотите обнулить списки основы и резерва? Это действие сбросит все галки у игроков.")) {
-        players.forEach(p => {
-            p.status = 'none';
-        });
-        saveData();
+    if (confirm("Вы точно хотите обнулить списки основы и резерва?")) {
+        players.forEach(p => { p.status = 'none'; });
+        saveStatuses();
         renderAdminTable();
         updateCounters();
     }
@@ -208,7 +240,6 @@ function renderBuildingsTable() {
 
 function openModal() { const m = document.getElementById('mapModal'); if(m) m.style.display = 'flex'; }
 function closeModal() { const m = document.getElementById('mapModal'); if(m) m.style.display = 'none'; }
-
 
 // ==========================================
 // ШАГ 4: МАТЕМАТИЧЕСКИЙ АЛГОРИТМ "ЗМЕЙКА"
@@ -236,7 +267,7 @@ function calculateDistribution() {
     let pool = [...activePlayers]; // Список уже идеально отсортирован (БМ + РР)
 
     // --- ЭТАП 1: ДО 15 МИНУТ ---
-    // Солнечная станция: Топ-1 БМ + 2 средних игрока
+    // Солнечная станция: Топ-1 БМ (Капитан) + 2 средних игрока
     let captain = pool.shift(); 
     let phase1Solar = [captain];
     if (pool.length > 0) {
@@ -347,3 +378,4 @@ function renderDistributionGrid() {
         `;
     }).join('');
 }
+
