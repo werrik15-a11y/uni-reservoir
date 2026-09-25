@@ -2,7 +2,7 @@
 // ШАГ 1: БАЗОВЫЕ ДАННЫЕ И ИНИЦИАЛИЗАЦИЯ
 // ==========================================
 
-// Справочный массив всех строений на карте Резервуара (из вашего скриншота)
+// Справочный массив всех строений на карте Резервуара
 const buildingsData = [
     { id: "center_res", name: "Центральный резервуар", time: "через 15 минут", capture: 9000, hold: 1200, bonus: "-", maxPlayers: 8 },
     { id: "water_1", name: "Водоочистительный центр 1", time: "Сразу", capture: 6000, hold: 1200, bonus: "-", maxPlayers: 5 },
@@ -18,23 +18,18 @@ const buildingsData = [
     { id: "barrels", name: "Бочки", time: "с 36 минуты", capture: 0, hold: 240, bonus: "-", maxPlayers: 10 }
 ];
 
-// Загрузка списка участников союза из локальной памяти браузера (LocalStorage)
-// Переменная, куда запишется список игроков после загрузки из файла
 let players = [];
-
-// Переменная для хранения последнего тактического распределения (его пока оставим в памяти браузера)
 let lastDistribution = JSON.parse(localStorage.getItem('uni_distribution')) || {};
+let currentPhase = 1;
 
-// Главный триггер: сначала скачивает файл, а потом включает всё остальное
+// Главный триггер: асинхронно скачивает файл базы данных союза
 window.onload = function() {
-    // Асинхронно читаем файл players.json
     fetch('players.json')
         .then(response => {
             if (!response.ok) throw new Error('Не удалось найти файл players.json');
             return response.json();
         })
         .then(data => {
-            // Записываем данные в наш массив и добавляем им базовые статусы
             players = data.map(p => ({
                 name: p.name,
                 power: parseFloat(p.power),
@@ -44,73 +39,43 @@ window.onload = function() {
             
             // Сортируем по силе от большего к меньшему
             players.sort((a, b) => b.power - a.power);
-
-            // Отрисовываем интерфейс, когда данные готовы
+            
+            // Отрисовываем интерфейс
             renderBuildingsTable();
             renderAdminTable();
             renderDistributionGrid();
         })
         .catch(error => {
             console.error('Ошибка загрузки состава:', error);
-            alert('Внимание: не удалось загрузить список игроков из файла players.json. Если вы запустили сайт локально на компьютере, это нормально (сработало ограничение браузера). На GitHub всё будет работать!');
-            
-            // Заглушка, чтобы сайт не ломался при локальном запуске без сервера
             renderBuildingsTable();
         });
 };
 
-// Функция переключения вкладок меню (Восстановленная и исправленная)
-function switchTab(tabId) {
-    // Скрываем все вкладки и убираем подсветку у всех кнопок меню
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-    
-    // Показываем нужную вкладку
-    const targetTab = document.getElementById(tabId);
-    if (targetTab) {
-        targetTab.classList.add('active');
-    }
-    
-    // Безопасно подсвечиваем кнопку, на которую нажали
-    if (window.event && window.event.target) {
-        window.event.target.classList.add('active');
-    } else if (typeof event !== 'undefined' && event.target) {
-        event.target.classList.add('active');
-    }
-}
-
-// Вспомогательная функция сохранения
 function saveData() {
     localStorage.setItem('uni_players', JSON.stringify(players));
 }
-
 
 // ==========================================
 // ШАГ 2: ПАНЕЛЬ УПРАВЛЕНИЯ (ЛОГИКА АДМИНКИ)
 // ==========================================
 
-// Функция генерации и обновления таблицы игроков на экране управления
 function renderAdminTable() {
     const tbody = document.getElementById('adminTableBody');
-    
-    // Если игроков в базе еще нет, показываем сообщение-подсказку
+    if (!tbody) return;
     if (players.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Список пуст. Добавьте первых бойцов выше.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Список пуст. Добавьте игроков.</td></tr>`;
         return;
     }
 
-    // Проходимся по каждому игроку и формируем строку таблицы
     tbody.innerHTML = players.map((player, index) => {
-        // Определяем цвет плашки и текст в зависимости от статуса участия (галок)
         let statusClass = 'status-none';
         let statusText = 'Не идет';
         if (player.status === 'main') { statusClass = 'status-main'; statusText = '🟢 Основа'; }
         if (player.status === 'reserve') { statusClass = 'status-reserve'; statusText = '🟠 Резерв'; }
 
-        // Формируем кнопки отслеживания явки (был / пропустил)
         let attendanceHtml = `
-            <button class="attendance-btn ${player.attended === true ? 'present' : ''}" onclick="toggleAttendance(${index}, true)" title="Был на битве">✅</button>
-            <button class="attendance-btn ${player.attended === false ? 'absent' : ''}" onclick="toggleAttendance(${index}, false)" title="Пропустил">❌</button>
+            <button class="attendance-btn ${player.attended === true ? 'present' : ''}" onclick="toggleAttendance(${index}, true)">✅</button>
+            <button class="attendance-btn ${player.attended === false ? 'absent' : ''}" onclick="toggleAttendance(${index}, false)">❌</button>
         `;
 
         return `
@@ -119,92 +84,61 @@ function renderAdminTable() {
                 <td style="color: var(--warning-color); font-weight: bold;">${player.power}</td>
                 <td><span class="status-badge ${statusClass}" onclick="togglePlayerStatus(${index})">${statusText}</span></td>
                 <td>${attendanceHtml}</td>
-                <td><button class="attendance-btn" style="color: var(--danger-color);" onclick="deletePlayer(${index})" title="Удалить игрока">🗑️</button></td>
+                <td><button class="attendance-btn" style="color: var(--danger-color);" onclick="deletePlayer(${index})">🗑️</button></td>
             </tr>
         `;
     }).join('');
 }
 
-// Функция добавления нового бойца в систему
 function addPlayer() {
     const nameInput = document.getElementById('newPlayerName');
     const powerInput = document.getElementById('newPlayerPower');
-    
-    // Валидация полей ввода
-    if (!nameInput.value.trim() || !powerInput.value) {
-        alert('Пожалуйста, введите никнейм и боевую мощь (БМ)!');
-        return;
-    }
+    if (!nameInput.value.trim() || !powerInput.value) return;
 
-    // Добавляем новый объект игрока в наш рабочий массив
     players.push({
         name: nameInput.value.trim(),
         power: parseFloat(powerInput.value),
-        status: 'none', // по умолчанию игрок числится неактивным
-        attended: null  // статус явки до начала боя не задан
+        status: 'none',
+        attended: null
     });
-
-    // Сортируем союз по убыванию силы, чтобы топ-игроки всегда были сверху
     players.sort((a, b) => b.power - a.power);
-
-    saveData();         // сохраняем в локальную память
-    renderAdminTable(); // перерисовываем таблицу на экране
-    
-    // Очищаем поля ввода
+    saveData();
+    renderAdminTable();
     nameInput.value = '';
     powerInput.value = '';
 }
 
-// Функция удаления игрока из базы союза
 function deletePlayer(index) {
-    if (confirm(`Удалить игрока ${players[index].name} из базы данных союза?`)) {
+    if (confirm(`Удалить игрока ${players[index].name}?`)) {
         players.splice(index, 1);
         saveData();
         renderAdminTable();
     }
 }
 
-// Функция переключения статуса кликом: Не идет -> 🟢 Основа -> 🟠 Резерв -> Не идет
 function togglePlayerStatus(index) {
     const currentStatus = players[index].status;
-    
-    if (currentStatus === 'none') {
-        players[index].status = 'main';
-    } else if (currentStatus === 'main') {
-        players[index].status = 'reserve';
-    } else {
-        players[index].status = 'none';
-    }
-    
+    if (currentStatus === 'none') players[index].status = 'main';
+    else if (currentStatus === 'main') players[index].status = 'reserve';
+    else players[index].status = 'none';
     saveData();
     renderAdminTable();
 }
 
-// Функция фиксации посещаемости после завершения события
+// Фиксация явки (был / не был)
 function toggleAttendance(index, attendedValue) {
-    // Если повторно нажали на ту же кнопку — сбрасываем статус явки
-    if (players[index].attended === attendedValue) {
-        players[index].attended = null;
-    } else {
-        players[index].attended = attendedValue;
-    }
+    players[index].attended = (players[index].attended === attendedValue) ? null : attendedValue;
     saveData();
     renderAdminTable();
 }
-
 
 // ==========================================
 // ШАГ 3: ЛОГИКА СПРАВОЧНОЙ ВКЛАДКИ И КАРТЫ
 // ==========================================
 
-// Функция автоматического заполнения таблицы характеристик зданий
 function renderBuildingsTable() {
     const tbody = document.getElementById('buildingsTableBody');
-    
-    // Если на странице нет такой таблицы, выходим из функции
     if (!tbody) return;
-
-    // Генерируем строки таблицы на основе данных из массива buildingsData
     tbody.innerHTML = buildingsData.map(b => `
         <tr>
             <td><b>${b.name}</b></td>
@@ -216,15 +150,137 @@ function renderBuildingsTable() {
     `).join('');
 }
 
-// Функция открытия модального окна с картой на весь экран
-function openModal() {
-    const modal = document.getElementById('mapModal');
-    if (modal) modal.style.display = 'flex';
+function openModal() { const m = document.getElementById('mapModal'); if(m) m.style.display = 'flex'; }
+function closeModal() { const m = document.getElementById('mapModal'); if(m) m.style.display = 'none'; }
+
+
+// ==========================================
+// ШАГ 4: МАТЕМАТИЧЕСКИЙ АЛГОРИТМ "ЗМЕЙКА"
+// ==========================================
+
+// Переключатель временных фаз
+function switchPhase(phaseNumber) {
+    currentPhase = phaseNumber;
+    document.getElementById('btnPhase1').classList.remove('active-phase');
+    document.getElementById('btnPhase2').classList.remove('active-phase');
+    document.getElementById('btnPhase3').classList.remove('active-phase');
+    document.getElementById(`btnPhase${phaseNumber}`).classList.add('active-phase');
+    renderDistributionGrid();
 }
 
-// Функция закрытия модального окна с картой
-function closeModal() {
-    const modal = document.getElementById('mapModal');
-    if (modal) modal.style.display = 'none';
+// Главная функция расчета
+function calculateDistribution() {
+    let activePlayers = players.filter(p => p.status === 'main');
+    if (activePlayers.length === 0) {
+        alert("Отметьте игроков зеленой галкой (Основа) в Панели Управления!");
+        return;
+    }
+
+    let dist = { phase1: {}, phase2: {}, phase3: {} };
+    let pool = [...activePlayers]; // Копия отсортированного по БМ списка игроков
+
+    // --- ЭТАП 1: ДО 15 МИНУТ ---
+    // Солнечная станция: Топ-1 БМ + 2 средних игрока
+    let captain = pool.shift(); 
+    let phase1Solar = [captain];
+    if (pool.length > 0) {
+        let mid = Math.floor(pool.length / 2);
+        phase1Solar.push(pool.splice(mid, 1)[0]);
+        if (pool.length > 0) phase1Solar.push(pool.splice(mid - 1, 1)[0]);
+    }
+    dist.phase1["solar"] = { name: "Солнечная станция", players: phase1Solar.filter(Boolean) };
+
+    // Вертолетная площадка: забираем 3 игроков из оставшегося хвоста пула (самых слабых)
+    let phase1Heli = [];
+    for(let i=0; i<3; i++) { if(pool.length > 0) phase1Heli.push(pool.pop()); }
+    dist.phase1["heliport"] = { name: "Вертолетная площадка", players: phase1Heli };
+
+    // Распределяем «Змейкой» всех оставшихся игроков по 6 основным линиям
+    let lines = ["water_1", "water_2", "factory_1", "factory_2", "factory_3", "factory_4"];
+    lines.forEach(id => {
+        let name = id.includes("water") ? "Водоочистительный центр " + id.slice(-1) : "Водоперерабатывающий завод " + id.slice(-1);
+        dist.phase1[id] = { name: name, players: [] };
+    });
+
+    let forward = true;
+    let idx = 0;
+    while (pool.length > 0) {
+        dist.phase1[lines[idx]].players.push(pool.shift());
+        if (forward) {
+            idx++;
+            if (idx >= lines.length) { idx = lines.length - 1; forward = false; }
+        } else {
+            idx--;
+            if (idx < 0) { idx = 0; forward = true; }
+        }
+    }
+
+    // --- ЭТАП 2: ДО 30 МИНУТ ---
+    dist.phase2 = JSON.parse(JSON.stringify(dist.phase1));
+    // Капитан перемещается в Центральный резервуар
+    dist.phase2["center_res"] = { name: "Центральный резервуар", players: [captain] };
+    
+    // Выделяем Топ-2, Топ-3 и Топ-4 под тактические спецобъекты со скрина
+    let top2 = activePlayers[1], top3 = activePlayers[2], top4 = activePlayers[3];
+    dist.phase2["solar"] = { name: "Солнечная станция", players: top2 ? [top2] : [] };
+    dist.phase2["military"] = { name: "Военный завод", players: top3 ? [top3] : [] };
+    dist.phase2["dev_complex"] = { name: "Комплекс разработки", players: top4 ? [top4] : [] };
+
+    // --- ЭТАП 3: ДО КОНЦА ---
+    dist.phase3 = JSON.parse(JSON.stringify(dist.phase2));
+    
+    // Формируем ударную группу ЛЕТУНОВ из топов
+    dist.phase3["leters"] = { name: "🚀 ЛЕТУНЫ", players: [top2, top3, top4].filter(Boolean) };
+    dist.phase3["solar"] = { name: "Солнечная станция", players: [{name: "— [Сбиваем захват]", power: 0}] };
+    dist.phase3["military"] = { name: "Военный завод", players: [{name: "— [Сбиваем захват]", power: 0}] };
+    dist.phase3["dev_complex"] = { name: "Комплекс разработки", players: [{name: "— [Сбиваем захват]", power: 0}] };
+
+    // Самые слабые по БМ игроки (последние 30% от состава) уходят закрывать бочки
+    let totalAct = activePlayers.length;
+    let barrelCount = Math.floor(totalAct * 0.3);
+    let barrelPlayers = activePlayers.slice(totalAct - barrelCount);
+    dist.phase3["barrels"] = { name: "📦 Бочки", players: barrelPlayers };
+
+    lastDistribution = dist;
+    localStorage.setItem('uni_distribution', JSON.stringify(lastDistribution));
+    renderDistributionGrid();
 }
 
+// Отрисовка тактических карточек на экране распределения
+function renderDistributionGrid() {
+    const grid = document.getElementById('distributionGrid');
+    if (!grid) return;
+    let phaseKey = `phase${currentPhase}`;
+    if (!lastDistribution[phaseKey]) {
+        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;">Нажмите кнопку «⚡ Рассчитать тактику» выше.</div>`;
+        return;
+    }
+
+    let data = lastDistribution[phaseKey];
+    grid.innerHTML = Object.keys(data).map(key => {
+        const group = data[key];
+        if (!group.players || group.players.length === 0) return '';
+        
+        let totalPower = group.players.reduce((sum, p) => sum + (p.power || 0), 0);
+        let playersHtml = group.players.map(p => `
+            <div class="player-row">
+                <span>👤 ${p.name}</span>
+                <span style="color: var(--text-muted); font-size:13px;">${p.power > 0 ? p.power : ''}</span>
+            </div>
+        `).join('');
+
+        // Формируем чистую строку имен для быстрого копирования
+        let nicks = group.players.map(p => p.name).filter(n => !n.includes('—')).join(' ');
+
+        return `
+            <div class="building-card">
+                <div class="building-header">
+                    <div class="building-title">${group.name}</div>
+                    <div class="building-power">${totalPower > 0 ? totalPower.toFixed(1) : ''}</div>
+                </div>
+                <div style="margin-bottom: 15px;">${playersHtml}</div>
+                ${totalPower > 0 ? `<button class="copy-btn" onclick="navigator.clipboard.writeText('\${nicks}'); alert('Ники скопированы!');">📋 Копировать состав</button>` : ''}
+            </div>
+        `;
+    }).join('');
+}
