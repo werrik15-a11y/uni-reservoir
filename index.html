@@ -33,7 +33,8 @@
             <h2>Тактическая карта и ценность объектов</h2>
             <div class="map-container">
                 <div class="map-img-wrapper" onclick="openModal()">
-                    <img src="https://imgur.com" alt="Карта Резервуара" id="mapImg">
+                    <!-- ЗДЕСЬ: Ссылка изменена на локальный файл вашей карты -->
+                    <img src="map.jpg" alt="Карта Резервуара" id="mapImg">
                     <p style="text-align: center; color: var(--text-muted); font-size: 12px; margin: 5px 0 0 0;">Кликните, чтобы развернуть</p>
                 </div>
                 <div style="flex: 1.3; overflow-x: auto;">
@@ -54,6 +55,7 @@
                 </div>
             </div>
         </div>
+
 
         <!-- ВКЛАДКА 2: РАСПРЕДЕЛЕНИЕ -->
         <div id="distribution" class="tab-content">
@@ -118,9 +120,11 @@
         </div>
 
 
-    <div id="mapModal" class="modal" onclick="closeModal()">
-        <img src="https://imgur.com" alt="Карта Крупно">
-    </div>
+<div id="mapModal" class="modal" onclick="closeModal()">
+    <!-- Здесь тоже меняем на map.jpg -->
+    <img src="map.jpg" alt="Карта Крупно">
+</div>
+
 
     <!-- Встроенная защита переключения вкладок, которая сработает в любом случае -->
     <script>
@@ -136,4 +140,6 @@
     <script src="script.js"></script>
 </body>
 </html>
+
+
 
