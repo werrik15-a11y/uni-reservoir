@@ -51,14 +51,23 @@ window.onload = function() {
 };
 
 function parseGoogleSheetCSV(text) {
+    // Разделяем полученный текст на строки
     const lines = text.split(/\r?\n/);
     players = [];
+
+    // Идем со 2-й строки (пропуская заголовки: Игрок, БМ, Очки, Статус)
     for (let i = 1; i < lines.length; i++) {
         if (!lines[i].trim()) continue;
+        
+        // Разбиваем строку на столбцы по запятой или точке с запятой
         const columns = lines[i].split(/[,;]/);
+        
+        // Проверяем, что в первом столбце есть имя игрока
         if (columns && columns[0].trim()) {
+            // Безопасно считываем статус из 4-го столбца (индекс 3)
             let rawStatus = columns[3] ? columns[3].trim() : '0';
             let statusValue = 'none';
+            
             if (rawStatus === '1') statusValue = 'main';
             if (rawStatus === '2') statusValue = 'reserve';
 
@@ -72,6 +81,7 @@ function parseGoogleSheetCSV(text) {
         }
     }
 }
+
 
 function loadSavedAttendance() {
     let saved = localStorage.getItem('uni_attendance');
