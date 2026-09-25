@@ -77,9 +77,10 @@
         <div id="admin" class="tab-content">
             <h2>Управление личным составом союза</h2>
             
-            <div style="background-color: var(--panel-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; gap: 15px; align-items: center; margin-bottom: 20px;">
-                <input type="text" id="newPlayerName" placeholder="Никнейм игрока" style="flex: 1;">
-                <input type="number" id="newPlayerPower" placeholder="Боевая мощь (БМ)" style="width: 180px;">
+            <div style="background-color: var(--panel-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; gap: 15px; align-items: center; margin-bottom: 20px; flex-wrap: wrap;">
+                <input type="text" id="newPlayerName" placeholder="Никнейм игрока" style="flex: 1; min-width: 150px;">
+                <input type="number" id="newPlayerPower" placeholder="Боевая мощь (БМ)" style="width: 150px;">
+                <input type="number" id="newPlayerPoints" placeholder="Очки РР" style="width: 150px;">
                 <button class="btn" onclick="addPlayer()">Добавить игрока</button>
             </div>
 
@@ -88,17 +89,17 @@
                     <tr>
                         <th>Игрок</th>
                         <th>Боевая Мощь (БМ)</th>
+                        <th>Очки РР</th>
                         <th>Статус участия (Клик для смены)</th>
                         <th>Явка на битву</th>
                         <th style="width: 50px;"></th>
                     </tr>
                 </thead>
                 <tbody id="adminTableBody">
-                    <!-- Заполняется из скрипта -->
+                    <!-- Заполняется из script.js -->
                 </tbody>
             </table>
         </div>
-    </div>
 
     <div id="mapModal" class="modal" onclick="closeModal()">
         <img src="https://imgur.com" alt="Карта Крупно">
