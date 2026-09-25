@@ -77,11 +77,27 @@
         <div id="admin" class="tab-content">
             <h2>Управление личным составом союза</h2>
             
+            <!-- Форма добавления -->
             <div style="background-color: var(--panel-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; gap: 15px; align-items: center; margin-bottom: 20px; flex-wrap: wrap;">
                 <input type="text" id="newPlayerName" placeholder="Никнейм игрока" style="flex: 1; min-width: 150px;">
                 <input type="number" id="newPlayerPower" placeholder="Боевая мощь (БМ)" style="width: 150px;">
                 <input type="number" id="newPlayerPoints" placeholder="Очки РР" style="width: 150px;">
                 <button class="btn" onclick="addPlayer()">Добавить игрока</button>
+            </div>
+
+            <!-- Счётчики союза и кнопка сброса (Новый блок) -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; text-align: center;">
+                <div style="background-color: var(--panel-bg); border: 1px solid var(--border-color); padding: 12px; border-radius: 6px;">
+                    <span style="color: #56d364; font-weight: bold; font-size: 18px;" id="countMain">0</span>
+                    <div style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">В основном составе</div>
+                </div>
+                <div style="background-color: var(--panel-bg); border: 1px solid var(--border-color); padding: 12px; border-radius: 6px;">
+                    <span style="color: #e3b341; font-weight: bold; font-size: 18px;" id="countReserve">0</span>
+                    <div style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">В резерве</div>
+                </div>
+                <button class="btn btn-secondary" style="height: 100%; border-color: rgba(248, 81, 73, 0.4); color: #f85149;" onclick="resetAllStatuses()">
+                    🔄 Обнулить все галки
+                </button>
             </div>
 
             <table>
@@ -100,6 +116,7 @@
                 </tbody>
             </table>
         </div>
+
 
     <div id="mapModal" class="modal" onclick="closeModal()">
         <img src="https://imgur.com" alt="Карта Крупно">
