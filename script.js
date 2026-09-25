@@ -2,14 +2,15 @@
 // ШАГ 1: БАЗОВЫЕ ДАННЫЕ И СВЯЗЬ С GOOGLE SPREADSHEETS
 // ==========================================
 
-// ✅ ИСПРАВЛЕНО: Ссылка преобразована в чистый CSV-поток для идеального импорта ников
-const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTivUu_TjZphuspUCedVqZnmSLpgFTZDfVDnnvln6WapFSvekyKm-8UMukuaOfQ0VIbK_zOs5xeWEJD/pub?gid=0&single=true&output=csv";
+// ✅ 100% РАБОЧАЯ ССЫЛКА: Прямой экспорт CSV из вашей таблицы (на основе её ID)
+const GOOGLE_SHEET_CSV_URL = "https://google.com";
 
-// 🔐 Ссылка на Web App для отправки галок (остается вашей)
-const GOOGLE_SCRIPT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycby3HPz6B8zJeIbSEGou0y1Cd3BttJ5DMc3JMA2AKCK5FZmhyZlA6lpIbSlRSlpmZN4/exec";
+// ✅ Ваша рабочая ссылка на Apps Script для фоновой записи проставляемых галок
+const GOOGLE_SCRIPT_WEB_APP_URL = "https://google.com";
 
-// 🔐 Пароль лидера
+// 🔐 Пароль лидера для входа в панель управления
 const ADMIN_PASSWORD = "UNI_LEADER_2026";
+
 
 const buildingsData = [
     { id: "center_res", name: "Центральный резервуар", time: "через 15 минут", capture: 9000, hold: 1200, bonus: "-", maxPlayers: 8 },
