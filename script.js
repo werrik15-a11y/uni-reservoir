@@ -25,7 +25,7 @@ let players = [];
 // Переменная для хранения последнего тактического распределения (его пока оставим в памяти браузера)
 let lastDistribution = JSON.parse(localStorage.getItem('uni_distribution')) || {};
 
-// Главный триггер: теперь он сначала скачивает файл, а потом включает всё остальное
+// Главный триггер: сначала скачивает файл, а потом включает всё остальное
 window.onload = function() {
     // Асинхронно читаем файл players.json
     fetch('players.json')
@@ -58,6 +58,31 @@ window.onload = function() {
             renderBuildingsTable();
         });
 };
+
+// Функция переключения вкладок меню (Восстановленная и исправленная)
+function switchTab(tabId) {
+    // Скрываем все вкладки и убираем подсветку у всех кнопок меню
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+    
+    // Показываем нужную вкладку
+    const targetTab = document.getElementById(tabId);
+    if (targetTab) {
+        targetTab.classList.add('active');
+    }
+    
+    // Безопасно подсвечиваем кнопку, на которую нажали
+    if (window.event && window.event.target) {
+        window.event.target.classList.add('active');
+    } else if (typeof event !== 'undefined' && event.target) {
+        event.target.classList.add('active');
+    }
+}
+
+// Вспомогательная функция сохранения
+function saveData() {
+    localStorage.setItem('uni_players', JSON.stringify(players));
+}
 
 
 // ==========================================
@@ -167,6 +192,7 @@ function toggleAttendance(index, attendedValue) {
     renderAdminTable();
 }
 
+
 // ==========================================
 // ШАГ 3: ЛОГИКА СПРАВОЧНОЙ ВКЛАДКИ И КАРТЫ
 // ==========================================
@@ -175,7 +201,7 @@ function toggleAttendance(index, attendedValue) {
 function renderBuildingsTable() {
     const tbody = document.getElementById('buildingsTableBody');
     
-    // Если на странице нет такой таблицы (например, вкладка еще не загрузилась), выходим из функции
+    // Если на странице нет такой таблицы, выходим из функции
     if (!tbody) return;
 
     // Генерируем строки таблицы на основе данных из массива buildingsData
@@ -193,199 +219,12 @@ function renderBuildingsTable() {
 // Функция открытия модального окна с картой на весь экран
 function openModal() {
     const modal = document.getElementById('mapModal');
-    if (modal) {
-        modal.style.display = 'flex';
-    }
+    if (modal) modal.style.display = 'flex';
 }
 
 // Функция закрытия модального окна с картой
 function closeModal() {
     const modal = document.getElementById('mapModal');
-    if (modal) {
-        modal.style.display = 'none';
-    }
+    if (modal) modal.style.display = 'none';
 }
 
-// ==========================================
-// ШАГ 4: АЛГОРИТМ РАСПРЕДЕЛЕНИЯ И ТАКТИКА
-// ==========================================
-
-// Текущий выбранный пользователем этап (1 - до 15 мин, 2 - до 30 мин, 3 - до конца)
-let currentPhase = 1;
-
-// Переключение отображения этапов кнопками
-function switchPhase(phaseNumber) {
-    currentPhase = phaseNumber;
-    
-    // Подсвечиваем активную кнопку временного интервала
-    document.getElementById('btnPhase1').classList.remove('active-phase');
-    document.getElementById('btnPhase2').classList.remove('active-phase');
-    document.getElementById('btnPhase3').classList.remove('active-phase');
-    document.getElementById(`btnPhase${phaseNumber}`).classList.add('active-phase');
-    
-    // Перерисовываем карточки под выбранный этап
-    renderDistributionGrid();
-}
-
-// ГЛАВНЫЙ АЛГОРИТМ БАЛАНСИРОВКИ
-function calculateDistribution() {
-    // Отбираем только тех игроков, у кого стоит зеленая галка (Основа)
-    // Массив игроков у нас уже отсортирован от самого сильного к самому слабому в Шаге 1
-    let activePlayers = players.filter(p => p.status === 'main');
-    
-    if (activePlayers.length === 0) {
-        alert("Ошибка: Сначала зайдите в Панель Управления и отметьте игроков зеленой галкой (Основа)!");
-        return;
-    }
-
-    // Создаем структуру для хранения всех трех этапов
-    let distributionResult = {
-        phase1: {},
-        phase2: {},
-        phase3: {}
-    };
-
-    // Создаем копию списка игроков для безопасных манипуляций
-    let pool = [...activePlayers];
-
-    // ========================================================
-    // ЭТАП 1: ДО 15 МИНУТ (Логика из вашего сообщения)
-    // ========================================================
-    
-    // 1. Солнечная станция: забираем 1 самого сильного (Капитана)
-    let captain = pool.shift(); 
-    
-    // Нам нужны еще 2 среднячка к нему. Находим середину оставшегося пула
-    let midIndex = Math.floor(pool.length / 2);
-    let mid1 = pool.splice(midIndex, 1)[0];
-    let mid2 = pool.splice(midIndex - 1, 1)[0]; // берем еще одного рядом
-
-    distributionResult.phase1["solar"] = { name: "Солнечная станция", players: [captain, mid1, mid2].filter(Boolean) };
-    
-    // Вертолетная площадка (фиксировано по скрину, например, 3 игрока снизу пула или свободные)
-    // Для черновой версии выделим фиксированные группы под Вертолетку
-    let heliPlayers = [];
-    if(pool.length > 0) heliPlayers.push(pool.pop());
-    if(pool.length > 0) heliPlayers.push(pool.pop());
-    if(pool.length > 0) heliPlayers.push(pool.pop());
-    distributionResult.phase1["heliport"] = { name: "Вертолетная площадка", players: heliPlayers };
-
-    // 2. Балансировка «Змейкой» остальных групп
-    // Список боевых групп на 1 этап (всего 6 боевых линий: Водоочистители 1-2 и Заводы 1-4)
-    let lineIds = ["water_1", "water_2", "factory_1", "factory_2", "factory_3", "factory_4"];
-    lineIds.forEach(id => {
-        let name = id.includes("water") ? "Водоочистительный центр " + id.split("_")[1] : "Водоперерабатывающий завод " + id.split("_")[1];
-        distributionResult.phase1[id] = { name: name, players: [] };
-    });
-
-    // Распределяем оставшихся сильных игроков "Змейкой" вперед-назад
-    let forward = true;
-    let lineIndex = 0;
-
-    while (pool.length > 0) {
-        let p = pool.shift(); // Берем самого сильного из оставшихся
-        distributionResult.phase1[lineIds[lineIndex]].players.push(p);
-
-        // Двигаем указатель группы дальше
-        if (forward) {
-            lineIndex++;
-            if (lineIndex >= lineIds.length) { lineIndex = lineIds.length - 1; forward = false; } // разворот змейки
-        } else {
-            lineIndex--;
-            if (lineIndex < 0) { lineIndex = 0; forward = true; } // разворот змейки
-        }
-    }
-
-    // ========================================================
-    // ЭТАП 2: ДО 30 МИНУТ (Корректировка позиций)
-    // ========================================================
-    // На основе этапа 1 перестраиваем роли по вашему скриншоту
-    distributionResult.phase2 = JSON.parse(JSON.stringify(distributionResult.phase1)); // копируем структуру
-    
-    // На 30 минуте Капитан спускается в Центральный резервуар
-    distributionResult.phase2["center_res"] = { name: "Центральный резервуар", players: [captain] };
-    // Радистка Кет уходит на Военный Завод, Айси на Комплекс разработки, Мисти на Солнечную станцию
-    // В черновой версии для наглядности перенесем топ-3 игроков в эти строения:
-    let topPlayers = activePlayers.slice(0, 4); // [Топ-1(Капитан), Топ-2, Топ-3, Топ-4]
-    
-    distributionResult.phase2["solar"] = { name: "Солнечная станция", players: topPlayers[1] ? [topPlayers[1]] : [] };
-    distributionResult.phase2["military"] = { name: "Военный завод", players: topPlayers[2] ? [topPlayers[2]] : [] };
-    distributionResult.phase2["dev_complex"] = { name: "Комплекс разработки", players: topPlayers[3] ? [topPlayers[3]] : [] };
-
-    // ========================================================
-    // ЭТАП 3: ДО КОНЦА (Финальный штурм)
-    // ========================================================
-    distributionResult.phase3 = JSON.parse(JSON.stringify(distributionResult.phase2));
-    
-    // Появляется группа "Летуны" (Топ-2, Топ-3, Топ-4)
-    distributionResult.phase3["leters"] = { name: "🟢 ЛЕТУНЫ", players: topPlayers.slice(1, 4) };
-    
-    // Солнечная, Военный и Комплекс переходят в режим "Сбиваем захват" (-)
-    distributionResult.phase3["solar"] = { name: "Солнечная станция", players: [{name: "— [Сбиваем захват]", power: 0}] };
-    distributionResult.phase3["military"] = { name: "Военный завод", players: [{name: "— [Сбиваем захват]", power: 0}] };
-    distributionResult.phase3["dev_complex"] = { name: "Комплекс разработки", players: [{name: "— [Сбиваем захват]", power: 0}] };
-
-    // Часть игроков спускается на Бочки
-    let lowerPlayers = activePlayers.slice(Math.floor(activePlayers.length * 0.6)); // последние 40% по силе
-    distributionResult.phase3["barrels"] = { name: "📦 Бочки (Свободный захват)", players: lowerPlayers };
-
-    // Сохраняем и фиксируем результаты расчетов в браузер
-    lastDistribution = distributionResult;
-    localStorage.setItem('uni_distribution', JSON.stringify(lastDistribution));
-    
-    renderDistributionGrid();
-}
-
-// ФУНКЦИЯ ОТРИСОВКИ КАРТОЧЕК НА ЭКРАНЕ
-function renderDistributionGrid() {
-    const grid = document.getElementById('distributionGrid');
-    
-    // Проверяем, есть ли рассчитанные данные для текущего этапа
-    let phaseKey = `phase${currentPhase}`;
-    if (!lastDistribution[phaseKey]) {
-        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;">Нажмите кнопку «Рассчитать тактику» выше, чтобы запустить алгоритм змейки.</div>`;
-        return;
-    }
-
-    let currentPhaseData = lastDistribution[phaseKey];
-
-    // Выводим карточки точек
-    grid.innerHTML = Object.keys(currentPhaseData).map(key => {
-        const group = currentPhaseData[key];
-        if (!group.players || group.players.length === 0) return '';
-
-        // Считаем общую боевую мощь группы на этой точке
-        let totalPower = group.players.reduce((sum, p) => sum + (p.power || 0), 0);
-
-        let playersHtml = group.players.map(p => `
-            <div class="player-row">
-                <span>👤 ${p.name}</span>
-                <span style="color: var(--text-muted); font-size:13px;">${p.power > 0 ? p.power : ''}</span>
-            </div>
-        `).join('');
-
-        let nicksText = group.players.map(p => p.name).join(' ');
-
-        return `
-            <div class="building-card">
-                <div class="building-header">
-                    <div class="building-title">${group.name}</div>
-                    <div class="building-power" title="Общая БМ группы">${totalPower > 0 ? totalPower.toFixed(1) : ''}</div>
-                </div>
-                <div style="margin-bottom: 15px;">
-                    ${playersHtml}
-                </div>
-                ${totalPower > 0 ? `<button class="copy-btn" onclick="copyToClipboard('\${nicksText}')">📋 Скопировать состав</button>` : ''}
-            </div>
-        `;
-    }).join('');
-}
-
-// Функция быстрого копирования имен в буфер обмена для Discord/чата игры
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        alert('Список ников скопирован! Можете вставить в чат союза.');
-    }).catch(err => {
-        alert('Не удалось скопировать автоматически, выделите текст на экране.');
-    });
-}
