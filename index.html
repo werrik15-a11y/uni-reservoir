@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UNI Alliance - Резервуар</title>
+    <!-- Связываем HTML со стилями -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header>
+        <div class="alliance-logo">⭐ UNI ALLIANCE</div>
+        <nav>
+            <button class="nav-link active" onclick="switchTab('welcome')">Приветствие</button>
+            <button class="nav-link" onclick="switchTab('map')">Карта и Здания</button>
+            <button class="nav-link" onclick="switchTab('distribution')">Распределение</button>
+            <button class="nav-link" onclick="switchTab('admin')">Панель Управления 🔒</button>
+        </nav>
+    </header>
+
+    <div class="container">
+        <!-- ВКЛАДКА 0: ПРИВЕТСТВИЕ -->
+        <div id="welcome" class="tab-content active">
+            <div class="welcome-panel">
+                <h1 style="color: var(--accent-color); margin-top: 0;">Тактический Штаб UNI</h1>
+                <p>Добро пожаловать в систему тактического распределения сил на событие <b>«Резервуар»</b> для союза <b>UNI</b>.</p>
+                <p style="color: var(--text-muted); font-size: 14px; margin-top: 30px;">Сила в единстве!</p>
+            </div>
+        </div>
+
+        <!-- ВКЛАДКА 1: КАРТА И ЗДАНИЯ -->
+        <div id="map" class="tab-content">
+            <h2>Тактическая карта и ценность объектов</h2>
+            <div class="map-container">
+                <div class="map-img-wrapper" onclick="openModal()">
+                    <img src="https://imgur.com" alt="Карта Резервуара" id="mapImg">
+                    <p style="text-align: center; color: var(--text-muted); font-size: 12px; margin: 5px 0 0 0;">Кликните, чтобы развернуть</p>
+                </div>
+                <div style="flex: 1.3; overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Здание</th>
+                                <th>Открытие</th>
+                                <th>Захват</th>
+                                <th>Удержание (мин)</th>
+                                <th>Бонус</th>
+                            </tr>
+                        </thead>
+                        <tbody id="buildingsTableBody">
+                            <!-- Заполняется из script.js -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ВКЛАДКА 2: РАСПРЕДЕЛЕНИЕ -->
+        <div id="distribution" class="tab-content">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>Текущее распределение сил по точкам</h2>
+                <button class="btn btn-success" onclick="calculateDistribution()">Сбалансировать команды</button>
+            </div>
+            <div class="teams-grid" id="distributionGrid">
+                <!-- Заполняется из script.js -->
+            </div>
+        </div>
+
+        <!-- ВКЛАДКА 3: ПАНЕЛЬ УПРАВЛЕНИЯ -->
+        <div id="admin" class="tab-content">
+            <h2>Управление личным составом союза</h2>
+            
+            <div style="background-color: var(--panel-bg); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; gap: 15px; align-items: center; margin-bottom: 20px;">
+                <input type="text" id="newPlayerName" placeholder="Никнейм игрока" style="flex: 1;">
+                <input type="number" id="newPlayerPower" placeholder="Боевая мощь (БМ)" style="width: 180px;">
+                <button class="btn" onclick="addPlayer()">Добавить игрока</button>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Игрок</th>
+                        <th>Боевая Мощь (БМ)</th>
+                        <th>Статус участия (Клик для смены)</th>
+                        <th>Явка на битву</th>
+                        <th style="width: 50px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="adminTableBody">
+                    <!-- Заполняется из script.js -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="mapModal" class="modal" onclick="closeModal()">
+        <img src="https://imgur.com" alt="Карта Крупно">
+    </div>
+
+    <!-- Связываем HTML с логикой JavaScript -->
+    <script src="script.js"></script>
+</body>
+</html>
