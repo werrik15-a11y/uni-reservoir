@@ -2,8 +2,14 @@
 // ШАГ 1: БАЗОВЫЕ ДАННЫЕ И СВЯЗЬ С GOOGLE SPREADSHEETS
 // ==========================================
 
-// ⚠️ ВСТАВЬТЕ СЮДА ВАШУ ССЫЛКУ НА CSV ИЗ GOOGLE ТАБЛИЦ (МЕЖДУ КАВЫЧКАМИ)
-const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTivUu_TjZphuspUCedVqZnmSLpgFTZDfVDnnvln6WapFSvekyKm-8UMukuaOfQ0VIbK_zOs5xeWEJD/pub?gid=0&single=true&output=csv";
+// ⚠️ Ссылка на CSV для чтения данных (остается старой)
+const GOOGLE_SHEET_CSV_URL = "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_НА_CSV";
+
+// 🔐 Ссылка на Web App из Шага 1 для ЗАПИСИ данных со страниц админки
+const GOOGLE_SCRIPT_WEB_APP_URL = "СЮДА_ВСТАВЬТЕ_URL_ВЕБ_ПРИЛОЖЕНИЯ_ИЗ_APPS_SCRIPT";
+
+// 🔐 Пароль лидера
+const ADMIN_PASSWORD = "UNI_LEADER_2026";
 
 const buildingsData = [
     { id: "center_res", name: "Центральный резервуар", time: "через 15 минут", capture: 9000, hold: 1200, bonus: "-", maxPlayers: 8 },
@@ -21,91 +27,64 @@ const buildingsData = [
 ];
 
 let players = [];
-let lastDistribution = JSON.parse(localStorage.getItem('uni_distribution')) || {};
+let lastDistribution = {};
 let currentPhase = 1;
 
 window.onload = function() {
-    if (GOOGLE_SHEET_CSV_URL === "СЮДА_ВСТАВЬТЕ_ВАШУ_ССЫЛКУ_НА_CSV" || !GOOGLE_SHEET_CSV_URL) {
-        alert("Ошибка: Сначала вставьте вашу опубликованную CSV ссылку из Google Таблиц в начало файла script.js!");
-        renderBuildingsTable();
+    if (!GOOGLE_SHEET_CSV_URL || GOOGLE_SHEET_CSV_URL.includes("СЮДА_ВСТАВЬТЕ")) {
+        alert("Ошибка: Проверьте ссылки на Google Таблицы в script.js!");
         return;
     }
 
-    // Скачиваем самые свежие данные из вашей Google таблицы
     fetch(GOOGLE_SHEET_CSV_URL)
-        .then(response => {
-            if (!response.ok) throw new Error('Не удалось получить данные Google таблицы');
-            return response.text();
-        })
+        .then(response => response.text())
         .then(csvText => {
-            // Парсим CSV данные построчно
             parseGoogleSheetCSV(csvText);
-            
-            // Восстанавливаем галки и явку из памяти браузера, чтобы они не слетали
-            loadSavedStatuses();
-            
+            loadSavedAttendance();
             sortPlayers();
-            initApp();
-        })
-        .catch(error => {
-            console.error('Ошибка загрузки Google Таблицы:', error);
-            alert('Не удалось загрузить состав из Google Таблиц. Проверьте публикацию ссылки.');
+            calculateDistribution(); // Сразу считаем тактику для всех
             renderBuildingsTable();
-        });
+            renderAdminTable();
+            updateCounters();
+        })
+        .catch(error => console.error(error));
 };
 
 function parseGoogleSheetCSV(text) {
-    // Разбираем текст по строкам
     const lines = text.split(/\r?\n/);
     players = [];
-
-    // Пропускаем первую строку (заголовки Игрок, БМ, Очки) и идем по остальным
     for (let i = 1; i < lines.length; i++) {
         if (!lines[i].trim()) continue;
-        
-        // Разделяем столбцы (в CSV это обычно запятая или точка с запятой)
         const columns = lines[i].split(/[,;]/);
-        
-        if (columns[0] && columns[0].trim()) {
+        if (columns && columns[0].trim()) {
+            let rawStatus = columns[3] ? columns[3].trim() : '0';
+            let statusValue = 'none';
+            if (rawStatus === '1') statusValue = 'main';
+            if (rawStatus === '2') statusValue = 'reserve';
+
             players.push({
                 name: columns[0].trim(),
                 power: parseFloat(columns[1]) || 0,
                 points: parseInt(columns[2]) || 0,
-                status: 'none',  
+                status: statusValue,  
                 attended: null   
             });
         }
     }
 }
 
-// Загрузка сохраненных состояний галок
-function loadSavedStatuses() {
-    let savedData = localStorage.getItem('uni_player_statuses');
-    if (!savedData) return;
-    
-    let statusMap = JSON.parse(savedData);
-    players.forEach(p => {
-        if (statusMap[p.name]) {
-            p.status = statusMap[p.name].status || 'none';
-            p.attended = statusMap[p.name].attended !== undefined ? statusMap[p.name].attended : null;
-        }
-    });
+function loadSavedAttendance() {
+    let saved = localStorage.getItem('uni_attendance');
+    if (saved) {
+        let attendanceMap = JSON.parse(saved);
+        players.forEach(p => { if (attendanceMap[p.name] !== undefined) p.attended = attendanceMap[p.name]; });
+    }
 }
 
-// Принудительное сохранение проставленных галок в память
-function saveStatuses() {
-    let statusMap = {};
-    players.forEach(p => {
-        statusMap[p.name] = { status: p.status, attended: p.attended };
-    });
-    localStorage.setItem('uni_player_statuses', JSON.stringify(statusMap));
-}
-
-function initApp() {
-    renderBuildingsTable();
-    renderAdminTable();
-    updateCounters();
-    renderDistributionGrid();
+function saveAttendance() {
+    let attendanceMap = {};
+    players.forEach(p => { attendanceMap[p.name] = p.attended; });
+    localStorage.setItem('uni_attendance', JSON.stringify(attendanceMap));
 }
 
 function sortPlayers() {
@@ -115,17 +94,23 @@ function sortPlayers() {
     });
 }
 
+function checkAdminPassword() {
+    const input = document.getElementById('adminPasswordInput').value;
+    if (input === ADMIN_PASSWORD) {
+        document.getElementById('adminAuthBlock').style.display = 'none';
+        document.getElementById('adminMainContent').style.display = 'block';
+    } else {
+        alert("Неверный пароль!");
+    }
+}
+
 // ==========================================
-// ШАГ 2: ПАНЕЛЬ УПРАВЛЕНИЯ (ЛОГИКА АДМИНКИ)
+// ШАГ 2: ПАНЕЛЬ УПРАВЛЕНИЯ И ОТПРАВКА ДАННЫХ
 // ==========================================
 
 function renderAdminTable() {
     const tbody = document.getElementById('adminTableBody');
     if (!tbody) return;
-    if (players.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Список пуст. Проверьте Google Таблицу.</td></tr>`;
-        return;
-    }
 
     tbody.innerHTML = players.map((player, index) => {
         let statusClass = 'status-none';
@@ -138,17 +123,13 @@ function renderAdminTable() {
             <button class="attendance-btn ${player.attended === false ? 'absent' : ''}" onclick="toggleAttendance(${index}, false)">❌</button>
         `;
 
-        let powerDisplay = player.power > 0 ? player.power : '—';
-        let pointsDisplay = player.points > 0 ? player.points.toLocaleString() : '—';
-
         return `
             <tr>
                 <td><b>${player.name}</b></td>
-                <td style="color: var(--warning-color); font-weight: bold;">${powerDisplay}</td>
-                <td style="color: var(--accent-color);">${pointsDisplay}</td>
-                <td><span class="status-badge ${statusClass}" onclick="togglePlayerStatus(${index})">${statusText}</span></td>
+                <td style="color: var(--warning-color); font-weight: bold;">${player.power > 0 ? player.power : '—'}</td>
+                <td style="color: var(--accent-color);">${player.points > 0 ? player.points.toLocaleString() : '—'}</td>
+                <td><span class="status-badge ${statusClass}" onclick="togglePlayerStatusAndSend(${index})">${statusText}</span></td>
                 <td>${attendanceHtml}</td>
-                <td><button class="attendance-btn" style="color: var(--danger-color);" onclick="deletePlayer(${index})">🗑️</button></td>
             </tr>
         `;
     }).join('');
@@ -157,68 +138,41 @@ function renderAdminTable() {
 function updateCounters() {
     let mainCount = players.filter(p => p.status === 'main').length;
     let reserveCount = players.filter(p => p.status === 'reserve').length;
-    const mainEl = document.getElementById('countMain');
-    const reserveEl = document.getElementById('countReserve');
-    if (mainEl) mainEl.innerText = mainCount;
-    if (reserveEl) reserveEl.innerText = reserveCount;
+    if (document.getElementById('countMain')) document.getElementById('countMain').innerText = mainCount;
+    if (document.getElementById('countReserve')) document.getElementById('countReserve').innerText = reserveCount;
 }
 
-function addPlayer() {
-    const nameInput = document.getElementById('newPlayerName');
-    const powerInput = document.getElementById('newPlayerPower');
-    const pointsInput = document.getElementById('newPlayerPoints');
-    if (!nameInput.value.trim()) return;
-
-    players.push({
-        name: nameInput.value.trim(),
-        power: parseFloat(powerInput.value) || 0,
-        points: parseInt(pointsInput.value) || 0,
-        status: 'none',
-        attended: null
-    });
-    
-    sortPlayers();
-    saveStatuses();
-    renderAdminTable();
-    updateCounters();
-    
-    nameInput.value = ''; powerInput.value = ''; pointsInput.value = '';
-}
-
-function deletePlayer(index) {
-    if (confirm(`Удалить игрока ${players[index].name}?`)) {
-        players.splice(index, 1);
-        saveStatuses();
-        renderAdminTable();
-        updateCounters();
-    }
-}
-
-function togglePlayerStatus(index) {
+// Функция переключения галки со встроенной мгновенной отправкой в Google Docs!
+function togglePlayerStatusAndSend(index) {
     const currentStatus = players[index].status;
-    if (currentStatus === 'none') players[index].status = 'main';
-    else if (currentStatus === 'main') players[index].status = 'reserve';
-    else players[index].status = 'none';
-    
-    saveStatuses();
+    let nextStatus = 'none';
+    let numericStatus = '0';
+
+    if (currentStatus === 'none') { nextStatus = 'main'; numericStatus = '1'; }
+    else if (currentStatus === 'main') { nextStatus = 'reserve'; numericStatus = '2'; }
+
+    players[index].status = nextStatus;
     renderAdminTable();
     updateCounters();
+    calculateDistribution(); // Сразу перерасчитываем тактическую сетку на экране
+
+    if (GOOGLE_SCRIPT_WEB_APP_URL.includes("СЮДА_ВСТАВЬТЕ")) return;
+
+    // Отправляем изменения в облако Google Таблицы в фоновом режиме
+    fetch(GOOGLE_SCRIPT_WEB_APP_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: players[index].name, status: numericStatus })
+    }).catch(err => console.error("Ошибка сохранения в облако:", err));
 }
 
-function toggleAttendance(index, attendedValue) {
-    players[index].attended = (players[index].attended === attendedValue) ? null : attendedValue;
-    saveStatuses();
+function toggleAttendance(index, value) {
+    players[index].attended = (players[index].attended === value) ? null : value;
+    saveAttendance();
     renderAdminTable();
 }
 
-function resetAllStatuses() {
-    if (confirm("Вы точно хотите обнулить списки основы и резерва?")) {
-        players.forEach(p => { p.status = 'none'; });
-        saveStatuses();
-        renderAdminTable();
-        updateCounters();
-    }
-}
 
 // ==========================================
 // ШАГ 3: ЛОГИКА СПРАВОЧНОЙ ВКЛАДКИ И КАРТЫ
