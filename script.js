@@ -144,19 +144,32 @@ function updateCounters() {
     if (document.getElementById('countReserve')) document.getElementById('countReserve').innerText = reserveCount;
 }
 
+// ИСПРАВЛЕННАЯ ФУНКЦИЯ: Мгновенно обновляет память сайта, пересчитывает змейку и отправляет в облако
 function togglePlayerStatusAndSend(index) {
     const currentStatus = players[index].status;
     let nextStatus = 'none';
     let numericStatus = '0';
 
-    if (currentStatus === 'none') { nextStatus = 'main'; numericStatus = '1'; }
-    else if (currentStatus === 'main') { nextStatus = 'reserve'; numericStatus = '2'; }
+    // 1. Определяем следующий статус по кругу
+    if (currentStatus === 'none') { 
+        nextStatus = 'main'; 
+        numericStatus = '1'; 
+    } else if (currentStatus === 'main') { 
+        nextStatus = 'reserve'; 
+        numericStatus = '2'; 
+    }
 
+    // 2. МЫ ПРАВИМ БАГ: Жестко обновляем статус игрока в памяти сайта прямо сейчас!
     players[index].status = nextStatus;
+
+    // 3. Перерисовываем админку и живые счетчики на экране
     renderAdminTable();
     updateCounters();
+    
+    // 4. МЫ ПРАВИМ БАГ: Заставляем алгоритм мгновенно пересчитать змейку с учетом нового бойца!
     calculateDistribution(); 
 
+    // 5. Отправляем изменения роботу в Google Таблицу в фоновом режиме
     if (!GOOGLE_SCRIPT_WEB_APP_URL || GOOGLE_SCRIPT_WEB_APP_URL.includes("СЮДА_ВСТАВЬТЕ")) return;
 
     fetch(GOOGLE_SCRIPT_WEB_APP_URL, {
@@ -164,8 +177,9 @@ function togglePlayerStatusAndSend(index) {
         mode: "no-cors",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: players[index].name, status: numericStatus })
-    }).catch(err => console.error("Ошибка сохранения в облако:", err));
+    }).catch(err => console.error("Ошибка сохранения в облако Google:", err));
 }
+
 
 function toggleAttendance(index, value) {
     players[index].attended = (players[index].attended === value) ? null : value;
