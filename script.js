@@ -444,3 +444,51 @@ function calculateDistribution() {
     lastDistribution = orderedDist;
     renderDistributionGrid();
 }
+
+// ✅ ВОССТАНОВЛЕННАЯ ФУНКЦИЯ: Генерирует понятные названия строений для змейки
+function bName(id) {
+    if (id === "solar") return "Солнечная станция";
+    if (id === "heliport") return "Вертолетная площадка";
+    if (id === "military") return "Военный завод";
+    if (id === "dev_complex") return "Комплекс разработки";
+    if (id.includes("water")) return "Водоочистительный центр " + id.slice(-1);
+    if (id.includes("factory")) return "Водоперерабатывающий завод " + id.slice(-1);
+    return id;
+}
+
+// Отрисовка тактических карточек на экране распределения
+function renderDistributionGrid() {
+    const grid = document.getElementById('distributionGrid');
+    if (!grid) return;
+    let phaseKey = `phase${currentPhase}`;
+    if (!lastDistribution[phaseKey]) {
+        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;">Нет активных данных. Заполните Google Таблицу.</div>`;
+        return;
+    }
+
+    let data = lastDistribution[phaseKey];
+    grid.innerHTML = Object.keys(data).map(key => {
+        const group = data[key];
+        if (!group || !group.players || group.players.length === 0) return '';
+        
+        let totalPower = group.players.reduce((sum, p) => sum + (p.power || 0), 0);
+        let playersHtml = group.players.map(p => {
+            let valDisplay = p.power > 0 ? p.power : (p.points > 0 ? `(${p.points.toLocaleString()})` : '');
+            return `<div class="player-row"><span>👤 ${p.name}</span><span style="color: var(--text-muted); font-size:13px;">${valDisplay}</span></div>`;
+        }).join('');
+
+        let nicks = group.players.map(p => p.name).filter(n => !n.includes('—')).join(' ');
+
+        return `
+            <div class="building-card">
+                <div class="building-header">
+                    <div class="building-title">${group.name}</div>
+                    <div class="building-power">${totalPower > 0 ? totalPower.toFixed(1) : ''}</div>
+                </div>
+                <div style="margin-bottom: 15px;">${playersHtml}</div>
+                ${totalPower > 0 || key === 'reserve_pool' ? `<button class="copy-btn" onclick="navigator.clipboard.writeText('\${nicks}'); alert('Ники скопированы!');">📋 Копировать состав</button>` : ''}
+            </div>
+        `;
+    }).join('');
+}
+
