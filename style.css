@@ -16,44 +16,76 @@ body {
     color: var(--text-color);
     margin: 0;
     padding: 0;
+    -webkit-tap-highlight-color: transparent; /* Убирает синюю подсветку при клике на телефоне */
 }
 
+/* ШАПКА: На мобильных логотип и меню встанут друг под друга */
 header {
     background-color: var(--panel-bg);
     border-bottom: 1px solid var(--border-color);
     padding: 15px 20px;
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 15px;
     align-items: center;
 }
 
+/* На больших экранах ПК возвращаем шапку в одну строку */
+@media (min-width: 768px) {
+    header {
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 0;
+    }
+}
+
 .alliance-logo {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: bold;
     color: var(--accent-color);
     letter-spacing: 2px;
+    text-align: center;
 }
 
+/* НАВИГАЦИЯ: На мобильных превращается в адаптивную сетку 2х2 */
 nav {
-    display: flex;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    width: 100%;
+    max-width: 500px;
+}
+
+/* На ПК выстраиваем вкладки в один красивый ряд */
+@media (min-width: 768px) {
+    nav {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+        width: auto;
+        max-width: none;
+    }
 }
 
 nav button {
-    background: none;
-    border: 1px solid transparent;
+    background-color: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
     color: var(--text-muted);
-    padding: 8px 16px;
+    padding: 10px 12px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
     border-radius: 6px;
     transition: all 0.2s;
+    text-align: center;
+    white-space: nowrap; /* Текст кнопок не будет переноситься криво */
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 nav button.active {
-    border-color: var(--border-color);
-    background-color: var(--bg-color);
-    color: var(--text-color);
+    border-color: var(--accent-color);
+    background-color: rgba(88, 166, 255, 0.1);
+    color: var(--accent-color);
     font-weight: bold;
 }
 
@@ -64,8 +96,8 @@ nav button:hover:not(.active) {
 
 .container {
     max-width: 1200px;
-    margin: 30px auto;
-    padding: 0 20px;
+    margin: 20px auto;
+    padding: 0 15px;
 }
 
 .tab-content {
@@ -80,12 +112,13 @@ nav button:hover:not(.active) {
     background-color: var(--panel-bg);
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    padding: 40px;
+    padding: 30px 20px;
     text-align: center;
     max-width: 600px;
-    margin: 40px auto;
+    margin: 20px auto;
 }
 
+/* АДАПТИВНЫЕ ТАБЛИЦЫ */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -94,10 +127,11 @@ table {
     border-radius: 8px;
     overflow: hidden;
     border: 1px solid var(--border-color);
+    font-size: 14px;
 }
 
 th, td {
-    padding: 12px 15px;
+    padding: 10px 12px;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
 }
@@ -112,37 +146,54 @@ th {
     background-color: var(--accent-color);
     color: white;
     border: none;
-    padding: 8px 16px;
+    padding: 10px 16px;
     border-radius: 6px;
     cursor: pointer;
     font-weight: 500;
+    font-size: 14px;
 }
 
 .btn-success { background-color: var(--success-color); }
 .btn-secondary { background-color: #21262d; border: 1px solid var(--border-color); color: var(--text-color); }
 
+.active-phase {
+    background-color: var(--success-color) !important;
+    border-color: var(--success-color) !important;
+    color: white !important;
+}
+
 input, select {
     background-color: var(--bg-color);
     border: 1px solid var(--border-color);
     color: var(--text-color);
-    padding: 8px;
+    padding: 10px;
     border-radius: 6px;
     font-size: 14px;
+    box-sizing: border-box;
 }
 
+/* АДАПТИВНАЯ КАРТА: На мобилках карты встанут на всю ширину сверху таблицы строений */
 .map-container {
     display: flex;
+    flex-direction: column;
     gap: 20px;
-    align-items: flex-start;
+}
+
+@media (min-width: 992px) {
+    .map-container {
+        flex-direction: row;
+        align-items: flex-start;
+    }
 }
 
 .map-img-wrapper {
-    flex: 1;
+    width: 100%;
     background-color: var(--panel-bg);
     border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 10px;
     cursor: pointer;
+    box-sizing: border-box;
 }
 
 .map-img-wrapper img {
@@ -152,10 +203,11 @@ input, select {
     display: block;
 }
 
+/* СЕТКА СТРУКТУРЫ РАСПРЕДЕЛЕНИЯ */
 .teams-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 15px;
     margin-top: 20px;
 }
 
@@ -179,7 +231,7 @@ input, select {
 
 .building-title {
     font-weight: bold;
-    font-size: 16px;
+    font-size: 15px;
 }
 
 .building-power {
@@ -191,32 +243,33 @@ input, select {
 .player-row {
     display: flex;
     justify-content: space-between;
-    padding: 6px 0;
+    padding: 8px 0;
     font-size: 14px;
     border-bottom: 1px solid rgba(255,255,255,0.02);
 }
 
 .copy-btn {
-    margin-top: auto;
+    margin-top: 10px;
     background-color: #21262d;
     border: 1px solid var(--border-color);
     color: var(--text-color);
-    padding: 6px;
+    padding: 8px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 13px;
     text-align: center;
+    font-weight: 500;
 }
 
 .status-badge {
     cursor: pointer;
-    padding: 4px 8px;
+    padding: 6px 10px;
     border-radius: 4px;
     font-size: 12px;
     font-weight: bold;
     display: inline-block;
     text-align: center;
-    min-width: 90px;
+    min-width: 80px;
 }
 
 .status-none { background-color: #21262d; color: var(--text-muted); }
@@ -228,11 +281,13 @@ input, select {
     font-size: 16px;
     background: none;
     border: none;
+    padding: 5px 8px;
     color: var(--text-muted);
 }
 .attendance-btn.present { color: #56d364; }
 .attendance-btn.absent { color: #f85149; }
 
+/* МОДАЛЬНОЕ ОКНО */
 .modal {
     display: none;
     position: fixed;
@@ -242,12 +297,4 @@ input, select {
     justify-content: center;
     align-items: center;
 }
-.modal img { max-width: 95%; max-height: 95%; border-radius: 4px; }
-
-.active-phase { background-color: var(--accent-color) !important; color: white !important; }
-
-.active-phase {
-    background-color: var(--success-color) !important;
-    border-color: var(--success-color) !important;
-    color: white !important;
-}
+.modal img { max-width: 95%; max-height: 95%; border-radius: 4px; object-fit: contain; }
