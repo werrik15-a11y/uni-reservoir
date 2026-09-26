@@ -3,10 +3,10 @@
 // ==========================================
 
 // ✅ ТЕПЕРЬ 100% ИСПРАВЛЕНО: Прямая CORS-ссылка на экспорт CSV
-const GOOGLE_SHEET_CSV_URL = "https://google.com";
+const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTivUu_TjZphuspUCedVqZnmSLpgFTZDfVDnnvln6WapFSvekyKm-8UMukuaOfQ0VIbK_zOs5xeWEJD/pub?gid=0&single=true&output=csv";
 
 // Ваша ссылка на Apps Script для записи галок (остается прежней)
-const GOOGLE_SCRIPT_WEB_APP_URL = "https://google.com";
+const GOOGLE_SCRIPT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxWstQD5cngpAwHF-UrbTneMB6o_g7A_eryrcF_SOhGHwIfsnc6QPettXV6zQxUIWQo/exec";
 
 // Пароль лидера
 const ADMIN_PASSWORD = "UNI_LEADER_2026";
