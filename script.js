@@ -345,81 +345,102 @@ function calculateDistribution() {
     delete dist.phase2["reserve_pool"];
     dist.phase2["reserve_pool"] = tempReserve2;
 
+       // ========================================================
+    // ЭТАП 3: ДО КОНЦА (Финальный штурм и перегруппировка)
     // ========================================================
-    // ЭТАП 3: ДО КОНЦА (Временная заглушка, ждём вашу логику)
-    // ========================================================
-    dist.phase3 = JSON.parse(JSON.stringify(dist.phase2));
+    // Создаем чистую копию распределения из 2-го этапа
+    let baseGrid2 = JSON.parse(JSON.stringify(dist.phase2));
     
-    if (activePlayers.length > 3) {
-        // Пока оставляем черновую структуру, на следующем шаге перепишем под вашу схему
-        let top2 = activePlayers[1] || null;
-        let top3 = activePlayers[2] || null;
-        let top4 = activePlayers[3] || null;
-        
-        dist.phase3["leters"] = { name: "🚀 ЛЕТУНЫ (Свободная атака)", players: [top2, top3, top4].filter(Boolean) };
-        dist.phase3["solar"] = { name: "Солнечная станция", players: [{name: "— [Сбиваем захват]", power: 0, points: 0}] };
-        dist.phase3["military"] = { name: "Военный завод", players: [{name: "— [Сбиваем захват]", power: 0, points: 0}] };
-        dist.phase3["dev_complex"] = { name: "Комплекс разработки", players: [{name: "— [Сбиваем захват]", power: 0, points: 0}] };
+    // Инициализируем пустую карточку под Бочки
+    dist.phase3["barrels"] = { name: "📦 Бочки", players: [] };
 
-        let totalAct = activePlayers.length;
-        let barrelCount = Math.floor(totalAct * 0.3);
-        let barrelPlayers = activePlayers.slice(totalAct - barrelCount);
-        dist.phase3["barrels"] = { name: "📦 Бочки", players: barrelPlayers };
+    // 1. Центральный резервуар: Капитан (Топ-1) остается на месте
+    dist.phase3["center_res"] = baseGrid2["center_res"] || { name: "Центральный резервуар", players: [] };
+
+    // 2. Формируем группу ЛЕТУНОВ из лидеров, которых мы пересаживали на этапе 2
+    // Забираем Топ-1 из групп Солнечной, Военного и Комплекса разработки этапа 2
+    let fly1 = (baseGrid2["solar"] && baseGrid2["solar"].players.length > 0) ? baseGrid2["solar"].players.shift() : null;
+    let fly2 = (baseGrid2["military"] && baseGrid2["military"].players.length > 0) ? baseGrid2["military"].players.shift() : null;
+    let fly3 = (baseGrid2["dev_complex"] && baseGrid2["dev_complex"].players.length > 0) ? baseGrid2["dev_complex"].players.shift() : null;
+
+    dist.phase3["leters"] = { 
+        name: "🚀 ЛЕТУНЫ (Свободная атака)", 
+        players: [fly1, fly2, fly3].filter(Boolean) 
+    };
+
+    // 3. Переводим Спецобъекты в режим сбития захвата для Летунов
+    dist.phase3["solar"] = { name: "Солнечная станция", players: [{name: "— [Сбиваем захват]", power: 0, points: 0}] };
+    dist.phase3["military"] = { name: "Военный завод", players: [{name: "— [Сбиваем захват]", power: 0, points: 0}] };
+    dist.phase3["dev_complex"] = { name: "Комплекс разработки", players: [{name: "— [Сбиваем захват]", power: 0, points: 0}] };
+
+    // 4. Вертолетная площадка: Оставляем Топ-1 из троих, остальных двоих отправляем на бочки
+    if (baseGrid2["heliport"] && baseGrid2["heliport"].players.length > 0) {
+        let heliKeep = baseGrid2["heliport"].players.shift(); // Самый сильный остается
+        dist.phase3["heliport"] = { name: "Вертолетная площадка", players: [heliKeep].filter(Boolean) };
+        
+        // Оставшихся скидываем в пул бочек
+        while (baseGrid2["heliport"].players.length > 0) {
+            let p = baseGrid2["heliport"].players.shift();
+            if (p) dist.phase3["barrels"].players.push(p);
+        }
+    } else {
+        dist.phase3["heliport"] = { name: "Вертолетная площадка", players: [] };
     }
 
-    let tempReserve3 = dist.phase3["reserve_pool"];
-    delete dist.phase3["reserve_pool"];
-    dist.phase3["reserve_pool"] = tempReserve3;
+    // 5. Линии обороны (ВЦ1, ВЦ2, ВЗ 1-4): Оставляем строго по 2 самых сильных, лишних слабых — на бочки
+    let defenseLines = ["water_1", "water_2", "factory_1", "factory_2", "factory_3", "factory_4"];
+    
+    defenseLines.forEach(id => {
+        if (baseGrid2[id] && baseGrid2[id].players.length > 0) {
+            // Поскольку пул уже отсортирован змейкой по силе, первые два — самые мощные на этой точке
+            let keep1 = baseGrid2[id].players.shift();
+            let keep2 = baseGrid2[id].players.shift();
+            
+            dist.phase3[id] = { name: bName(id), players: [keep1, keep2].filter(Boolean) };
+            
+            // Всех остальных («лишних») отправляем на бочки
+            while (baseGrid2[id].players.length > 0) {
+                let extraPlayer = baseGrid2[id].players.shift();
+                if (extraPlayer) dist.phase3["barrels"].players.push(extraPlayer);
+            }
+        } else {
+            dist.phase3[id] = { name: bName(id), players: [] };
+        }
+    });
 
-    lastDistribution = dist;
+    // Сортируем игроков на Бочках по убыванию силы, чтобы карточка выглядела аккуратно
+    if (dist.phase3["barrels"].players.length > 0) {
+        dist.phase3["barrels"].players.sort((a, b) => {
+            if (b.power !== a.power) return b.power - a.power;
+            return b.points - a.points;
+        });
+    }
+
+    // Очищаем пустые карточки строений на финальном этапе, если людей не хватило
+    Object.keys(dist.phase3).forEach(key => {
+        if (dist.phase3[key] && dist.phase3[key].players && dist.phase3[key].players.length === 0) {
+            delete dist.phase3[key];
+        }
+    });
+
+    // Принудительно выстраиваем правильный визуальный порядок вывода карточек на экран:
+    let orderedDist = {};
+    
+    // Летуны идут самыми первыми
+    if (dist.phase3["leters"]) orderedDist["leters"] = dist.phase3["leters"];
+    if (dist.phase3["center_res"]) orderedDist["center_res"] = dist.phase3["center_res"];
+    
+    // Переносим остальные здания
+    Object.keys(dist.phase3).forEach(key => {
+        if (key !== "leters" && key !== "center_res" && key !== "barrels" && key !== "reserve_pool") {
+            orderedDist[key] = dist.phase3[key];
+        }
+    });
+    
+    // Бочки и Резерв гарантированно уходят в самый низ
+    if (dist.phase3["barrels"]) orderedDist["barrels"] = dist.phase3["barrels"];
+    orderedDist["reserve_pool"] = reserveGroup;
+
+    lastDistribution = orderedDist;
     renderDistributionGrid();
 }
-
-
-function bName(id) {
-    if (id === "solar") return "Солнечная станция";
-    if (id === "heliport") return "Вертолетная площадка";
-    if (id === "military") return "Военный завод";
-    if (id === "dev_complex") return "Комплекс разработки";
-    if (id.includes("water")) return "Водоочистительный центр " + id.slice(-1);
-    if (id.includes("factory")) return "Водоперерабатывающий завод " + id.slice(-1);
-    return id;
-}
-
-// Отрисовка тактических карточек на экране распределения
-function renderDistributionGrid() {
-    const grid = document.getElementById('distributionGrid');
-    if (!grid) return;
-    let phaseKey = `phase${currentPhase}`;
-    if (!lastDistribution[phaseKey]) {
-        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;">Нет active-данных. Заполните Google Таблицу.</div>`;
-        return;
-    }
-
-    let data = lastDistribution[phaseKey];
-    grid.innerHTML = Object.keys(data).map(key => {
-        const group = data[key];
-        if (!group || !group.players || group.players.length === 0) return '';
-        
-        let totalPower = group.players.reduce((sum, p) => sum + (p.power || 0), 0);
-        let playersHtml = group.players.map(p => {
-            let valDisplay = p.power > 0 ? p.power : (p.points > 0 ? `(${p.points.toLocaleString()})` : '');
-            return `<div class="player-row"><span>👤 ${p.name}</span><span style="color: var(--text-muted); font-size:13px;">${valDisplay}</span></div>`;
-        }).join('');
-
-        let nicks = group.players.map(p => p.name).filter(n => !n.includes('—')).join(' ');
-
-        return `
-            <div class="building-card">
-                <div class="building-header">
-                    <div class="building-title">${group.name}</div>
-                    <div class="building-power">${totalPower > 0 ? totalPower.toFixed(1) : ''}</div>
-                </div>
-                <div style="margin-bottom: 15px;">${playersHtml}</div>
-                ${totalPower > 0 || key === 'reserve_pool' ? `<button class="copy-btn" onclick="navigator.clipboard.writeText('\${nicks}'); alert('Ники скопированы!');">📋 Копировать состав</button>` : ''}
-            </div>
-        `;
-    }).join('');
-}
-
-
