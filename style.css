@@ -326,3 +326,34 @@ nav button:hover:not(.active) {
     align-items: center;
 }
 .modal img { max-width: 95%; max-height: 95%; border-radius: 4px; object-fit: contain; }
+
+/* ==========================================
+   ФИКСАЦИЯ СТИЛЕЙ КНОПОК ВРЕМЕННЫХ ФАЗ
+   ========================================== */
+
+/* Крупные, аккуратные серые тактические кнопки этапов */
+.btn-secondary {
+    background-color: #21262d !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-color) !important;
+    padding: 12px 20px !important; /* Увеличенный размер кнопок */
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* Эффект при наведении на серую кнопку */
+.btn-secondary:hover:not(.active-phase) {
+    background-color: #30363d !important;
+    color: #fff !important;
+}
+
+/* Яркая зеленая подсветка для выбранного в данный момент этапа */
+.active-phase {
+    background-color: var(--success-color) !important;
+    border-color: var(--success-color) !important;
+    color: white !important;
+    box-shadow: 0 0 10px rgba(46, 164, 79, 0.4) !important; /* Легкое неоновое свечение */
+}
