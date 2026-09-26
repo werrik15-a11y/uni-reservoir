@@ -271,41 +271,41 @@ function calculateDistribution() {
     // ========================================================
     // ЭТАП 1: ДО 15 МИНУТ (Змейка с лимитом по 3 человека)
     // ========================================================
+    let lineIds = ["solar", "water_1", "water_2", "heliport", "factory_1", "factory_2", "factory_3", "factory_4"];
+    
+    lineIds.forEach(id => {
+        dist.phase1[id] = { name: bName(id), players: [] };
+    });
+
     if (pool.length > 0) {
-        let lineIds = ["solar", "water_1", "water_2", "heliport", "factory_1", "factory_2", "factory_3", "factory_4"];
-
-        lineIds.forEach(id => {
-            dist.phase1[id] = { name: bName(id), players: [] };
-        });
-
         let forward = true;
         let idx = 0;
+        let attempts = 0; // Защита от бесконечного цикла
 
-        while (pool.length > 0) {
+        while (pool.length > 0 && attempts < 500) {
+            attempts++;
             let targetId = lineIds[idx];
             let currentGroup = dist.phase1[targetId];
 
             // Проверяем лимит: если на Солнечной или Вертолетке уже 3 человека — пропускаем здание
             if ((targetId === "solar" || targetId === "heliport") && currentGroup.players.length >= 3) {
                 if (forward) {
-                    if (idx < lineIds.length - 1) { idx++; continue; } 
-                    else { forward = false; }
+                    if (idx < lineIds.length - 1) { idx++; } else { forward = false; }
                 } else {
-                    if (idx > 0) { idx--; continue; } 
-                    else { forward = true; }
+                    if (idx > 0) { idx--; } else { forward = true; }
                 }
                 continue;
             }
 
+            // Распределяем игрока
             let currentPlayer = pool.shift();
             currentGroup.players.push(currentPlayer);
 
+            // Разворот волны змейки
             if (forward) {
-                if (idx < lineIds.length - 1) { idx++; } 
-                else { forward = false; }
+                if (idx < lineIds.length - 1) { idx++; } else { forward = false; }
             } else {
-                if (idx > 0) { idx--; } 
-                else { forward = true; }
+                if (idx > 0) { idx--; } else { forward = true; }
             }
         }
     }
@@ -315,32 +315,32 @@ function calculateDistribution() {
     // ========================================================
     // ЭТАП 2: ДО 30 МИНУТ (Безопасная пересадка без дублирования)
     // ========================================================
-    if (activePlayers.length > 0) {
-        // Выделяем лидеров союза строго по индексам из живого массива activePlayers
-        let captain = activePlayers[0] || null; // Топ-1 союза
-        let top2 = activePlayers[1] || null;    // Топ-2 союза
-        let top3 = activePlayers[2] || null;    // Топ-3 союза
-        let top4 = activePlayers[3] || null;    // Топ-4 союза
+    lineIds.forEach(id => {
+        dist.phase2[id] = { name: bName(id), players: [] };
+    });
+    dist.phase2["center_res"] = { name: "Центральный резервуар", players: [] };
+    dist.phase2["military"] = { name: "Военный завод", players: [] };
+    dist.phase2["dev_complex"] = { name: "Комплекс разработки", players: [] };
 
-        // Собираем список имен лидеров, чтобы исключить их из базовой пехоты
+    if (activePlayers.length > 0) {
+        // Безопасное извлечение лидеров союза (страховка от undefined)
+        let captain = activePlayers[0] || null;
+        let top2 = activePlayers[1] || null;
+        let top3 = activePlayers[2] || null;
+        let top4 = activePlayers[3] || null;
+
         let topNames = [captain, top2, top3, top4].filter(Boolean).map(p => p.name);
 
-        // Переносим распределение из 1 этапа, отфильтровав лидеров
-        let lineIds = ["solar", "water_1", "water_2", "heliport", "factory_1", "factory_2", "factory_3", "factory_4"];
+        // Переносим распределение из 1 этапа, полностью исключая лидеров со старых мест
         lineIds.forEach(id => {
             let filteredPlayers = [];
             if (dist.phase1[id] && dist.phase1[id].players) {
                 filteredPlayers = dist.phase1[id].players.filter(p => !topNames.includes(p.name));
             }
-            dist.phase2[id] = { name: bName(id), players: filteredPlayers };
+            dist.phase2[id].players = filteredPlayers;
         });
 
-        // Создаем новые карточки под открывшиеся спецобъекты
-        dist.phase2["center_res"] = { name: "Центральный резервуар", players: [] };
-        dist.phase2["military"] = { name: "Военный завод", players: [] };
-        dist.phase2["dev_complex"] = { name: "Комплекс разработки", players: [] };
-
-        // Размещаем лидеров по их новым тактическим ролям
+        // Размещаем лидеров строго по их новым ролям
         if (captain) dist.phase2["center_res"].players.push(captain);
         if (top2) dist.phase2["solar"].players.unshift(top2);
         if (top3) dist.phase2["military"].players.push(top3);
@@ -352,6 +352,17 @@ function calculateDistribution() {
     // ========================================================
     // ЭТАП 3: ДО КОНЦА (Летуны на 1-м месте + сжатие обороны)
     // ========================================================
+    dist.phase3["leters"] = { name: "🚀 ЛЕТУНЫ (Свободная атака)", players: [] };
+    dist.phase3["center_res"] = { name: "Центральный резервуар", players: [] };
+    dist.phase3["solar"] = { name: "Солнечная станция", players: [{name: "— [Сбиваем захват]", power: 0, points: 0}] };
+    dist.phase3["military"] = { name: "Военный завод", players: [{name: "— [Сбиваем захват]", power: 0, points: 0}] };
+    dist.phase3["dev_complex"] = { name: "Комплекс разработки", players: [{name: "— [Сбиваем захват]", power: 0, points: 0}] };
+    
+    lineIds.forEach(id => {
+        if (id !== "solar") dist.phase3[id] = { name: bName(id), players: [] };
+    });
+    dist.phase3["barrels"] = { name: "📦 Бочки", players: [] };
+
     if (activePlayers.length > 0) {
         let captain = activePlayers[0] || null;
         let top2 = activePlayers[1] || null;
@@ -360,87 +371,62 @@ function calculateDistribution() {
         
         let flyNames = [top2, top3, top4].filter(Boolean).map(p => p.name);
 
-        // 🚀 ЛЕТУНЫ идут самыми первыми на экране
-        dist.phase3["leters"] = { 
-            name: "🚀 ЛЕТУНЫ (Свободная атака)", 
-            players: [top2, top3, top4].filter(Boolean) 
-        };
+        // Заполняем Летунов и Резервуар
+        dist.phase3["leters"].players = [top2, top3, top4].filter(Boolean);
+        if (captain) dist.phase3["center_res"].players.push(captain);
 
-        if (captain) dist.phase3["center_res"] = { name: "Центральный резервуар", players: [captain] };
-
-        // Переводим Спецобъекты в режим сбития захвата
-        dist.phase3["solar"] = { name: "Солнечная станция", players: [{name: "— [Сбиваем захват]", power: 0, points: 0}] };
-        dist.phase3["military"] = { name: "Военный завод", players: [{name: "— [Сбиваем захват]", power: 0, points: 0}] };
-        dist.phase3["dev_complex"] = { name: "Комплекс разработки", players: [{name: "— [Сбиваем захват]", power: 0, points: 0}] };
-
-        // На вертолетке оставляем ТОП-1 из её состава 2-го этапа, остальных отправим на бочки
-        if (dist.phase2["heliport"] && dist.phase2["heliport"].players.length > 0) {
-            let heliPlayers = dist.phase2["heliport"].players.filter(p => !flyNames.includes(p.name));
-            let heliKeep = heliPlayers.shift();
-            dist.phase3["heliport"] = { name: "Вертолетная площадка", players: heliKeep ? [heliKeep] : [] };
-        } else {
-            dist.phase3["heliport"] = { name: "Вертолетная площадка", players: [] };
+        // Сжатие Вертолетки: оставляем Топ-1 этой точки, остальных в массив лишних
+        let allExtraPlayers = [];
+        if (dist.phase2["heliport"] && dist.phase2["heliport"].players) {
+            let heliAvailable = dist.phase2["heliport"].players.filter(p => !flyNames.includes(p.name));
+            if (heliAvailable.length > 0) {
+                dist.phase3["heliport"].players.push(heliAvailable.shift()); // Оставляем одного самого сильного
+                allExtraPlayers.push(...heliAvailable); // Лишних на бочки
+            }
         }
 
-        // Оставляем строго по 2 человека на ВЦ и Заводах
+        // Сжатие Линий обороны (ВЦ1, ВЦ2, ВЗ 1-4): Оставляем строго по 2 человека
         let defenseLines = ["water_1", "water_2", "factory_1", "factory_2", "factory_3", "factory_4"];
-        let allExtraPlayers = [];
-
         defenseLines.forEach(id => {
             if (dist.phase2[id] && dist.phase2[id].players) {
-                // Исключаем возможных улетевших летунов
                 let available = dist.phase2[id].players.filter(p => !flyNames.includes(p.name));
                 
-                let keep1 = available.shift();
-                let keep2 = available.shift();
+                if (available.length > 0) dist.phase3[id].players.push(available.shift());
+                if (available.length > 0) dist.phase3[id].players.push(available.shift());
                 
-                dist.phase3[id] = { name: bName(id), players: [keep1, keep2].filter(Boolean) };
-                
-                // Всех остальных («лишних») временно скидываем в общий пул для Бочек
-                while (available.length > 0) {
-                    let extra = available.shift();
-                    if (extra) allExtraPlayers.push(extra);
-                }
+                // Всех остальных скидываем в пул бочек
+                allExtraPlayers.push(...available);
             }
         });
 
-        // Также добавляем на бочки «лишних» людей с вертолетки
-        if (dist.phase2["heliport"] && dist.phase2["heliport"].players) {
-            let heliAvailable = dist.phase2["heliport"].players.filter(p => !flyNames.includes(p.name));
-            heliAvailable.shift(); // Пропускаем того, кого оставили сторожить
-            while (heliAvailable.length > 0) {
-                let extraHeli = heliAvailable.shift();
-                if (extraHeli) allExtraPlayers.push(extraHeli);
-            }
-        }
-
-        // Сортируем пул Бочек по силе и выводим карточку
+        // Сортируем и выводим Бочки
         allExtraPlayers.sort((a, b) => b.power - a.power || b.points - a.points);
-        dist.phase3["barrels"] = { name: "📦 Бочки", players: allExtraPlayers };
+        dist.phase3["barrels"].players = allExtraPlayers;
     }
 
-    // Очищаем пустые строения, если людей не хватило
-    Object.keys(dist.phase3).forEach(key => {
-        if (dist.phase3[key] && dist.phase3[key].players && dist.phase3[key].players.length === 0) {
-            delete dist.phase3[key];
-        }
+    // Очищаем пустые строения во всех этапах, чтобы не засорять экран
+    ["phase1", "phase2", "phase3"].forEach(phase => {
+        Object.keys(dist[phase]).forEach(key => {
+            if (dist[phase][key] && dist[phase][key].players && dist[phase][key].players.length === 0) {
+                delete dist[phase][key];
+            }
+        });
     });
 
-    // Фиксируем строгий визуальный порядок карточек на экране
-    let orderedDist = {};
-    if (dist.phase3["leters"]) orderedDist["leters"] = dist.phase3["leters"];
-    if (dist.phase3["center_res"]) orderedDist["center_res"] = dist.phase3["center_res"];
-    
+    // Фиксируем строгий визуальный порядок карточек на 3 этапе
+    let orderedDist3 = {};
+    if (dist.phase3["leters"]) orderedDist3["leters"] = dist.phase3["leters"];
+    if (dist.phase3["center_res"]) orderedDist3["center_res"] = dist.phase3["center_res"];
     Object.keys(dist.phase3).forEach(key => {
         if (key !== "leters" && key !== "center_res" && key !== "barrels" && key !== "reserve_pool") {
-            orderedDist[key] = dist.phase3[key];
+            orderedDist3[key] = dist.phase3[key];
         }
     });
-    
-    if (dist.phase3["barrels"]) orderedDist["barrels"] = dist.phase3["barrels"];
-    orderedDist["reserve_pool"] = reserveGroup;
+    if (dist.phase3["barrels"]) orderedDist3["barrels"] = dist.phase3["barrels"];
+    orderedDist3["reserve_pool"] = reserveGroup;
+    dist.phase3 = orderedDist3;
 
-    lastDistribution = orderedDist;
+    lastDistribution = dist;
     renderDistributionGrid();
 }
 
