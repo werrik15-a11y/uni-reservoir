@@ -106,16 +106,6 @@ function sortPlayers() {
     });
 }
 
-function checkAdminPassword() {
-    const input = document.getElementById('adminPasswordInput').value;
-    if (input === ADMIN_PASSWORD) {
-        document.getElementById('adminAuthBlock').style.display = 'none';
-        document.getElementById('adminMainContent').style.display = 'block';
-    } else {
-        alert("Неверный пароль!");
-    }
-}
-
 // ==========================================
 // ШАГ 2: ПАНЕЛЬ УПРАВЛЕНИЯ И ОТПРАВКА ДАННЫХ
 // ==========================================
