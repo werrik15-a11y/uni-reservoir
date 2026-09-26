@@ -313,7 +313,7 @@ function calculateDistribution() {
 
     // 1. Топ-1 с Солнечной станции (из 1 этапа) уходит на Центральный резервуар
     if (dist.phase1["solar"] && dist.phase1["solar"].players.length > 0) {
-        let leaderSolar = dist.phase2["solar"].players.shift(); // Забираем первого (самого сильного)
+        let leaderSolar = dist.phase2["solar"].players.shift(); // Извлекаем Топ-1
         if (leaderSolar) dist.phase2["center_res"].players.push(leaderSolar);
     }
 
@@ -329,13 +329,13 @@ function calculateDistribution() {
         if (leaderWater2) dist.phase2["military"].players.push(leaderWater2);
     }
 
-    // 4. Топ-1 с Водоперерабатывающего завода 1 (ВЗ 1) уходит в Комплекс разработки
-    if (dist.phase1["factory_1"] && dist.phase1["factory_1"].players.length > 0) {
+    // 4. Топ-1 с Водоперерабатывающий завод 1 (ВЗ 1) уходит в Комплекс разработки
+    if (dist.phase2["factory_1"] && dist.phase2["factory_1"].players.length > 0) {
         let leaderFactory1 = dist.phase2["factory_1"].players.shift();
         if (leaderFactory1) dist.phase2["dev_complex"].players.push(leaderFactory1);
     }
 
-    // Удаляем пустые карточки, если на рейд пришло слишком мало людей и туда никто не попал
+    // Удаляем пустые карточки, если на рейд пришло мало людей и туда никто не попал
     if (dist.phase2["center_res"].players.length === 0) delete dist.phase2["center_res"];
     if (dist.phase2["military"].players.length === 0) delete dist.phase2["military"];
     if (dist.phase2["dev_complex"].players.length === 0) delete dist.phase2["dev_complex"];
@@ -345,7 +345,8 @@ function calculateDistribution() {
     delete dist.phase2["reserve_pool"];
     dist.phase2["reserve_pool"] = tempReserve2;
 
-       // ========================================================
+
+    // ========================================================
     // ЭТАП 3: ДО КОНЦА (Финальный штурм и перегруппировка)
     // ========================================================
     // Создаем чистую копию распределения из 2-го этапа
@@ -354,11 +355,10 @@ function calculateDistribution() {
     // Инициализируем пустую карточку под Бочки
     dist.phase3["barrels"] = { name: "📦 Бочки", players: [] };
 
-    // 1. Центральный резервуар: Капитан (Топ-1) остается на месте
+    // 1. Центральный резервуар: Капитан остается на месте
     dist.phase3["center_res"] = baseGrid2["center_res"] || { name: "Центральный резервуар", players: [] };
 
-    // 2. Формируем группу ЛЕТУНОВ из лидеров, которых мы пересаживали на этапе 2
-    // Забираем Топ-1 из групп Солнечной, Военного и Комплекса разработки этапа 2
+    // 2. Формируем группу ЛЕТУНОВ из лидеров спецобъектов этапа 2
     let fly1 = (baseGrid2["solar"] && baseGrid2["solar"].players.length > 0) ? baseGrid2["solar"].players.shift() : null;
     let fly2 = (baseGrid2["military"] && baseGrid2["military"].players.length > 0) ? baseGrid2["military"].players.shift() : null;
     let fly3 = (baseGrid2["dev_complex"] && baseGrid2["dev_complex"].players.length > 0) ? baseGrid2["dev_complex"].players.shift() : null;
@@ -378,7 +378,6 @@ function calculateDistribution() {
         let heliKeep = baseGrid2["heliport"].players.shift(); // Самый сильный остается
         dist.phase3["heliport"] = { name: "Вертолетная площадка", players: [heliKeep].filter(Boolean) };
         
-        // Оставшихся скидываем в пул бочек
         while (baseGrid2["heliport"].players.length > 0) {
             let p = baseGrid2["heliport"].players.shift();
             if (p) dist.phase3["barrels"].players.push(p);
@@ -392,13 +391,11 @@ function calculateDistribution() {
     
     defenseLines.forEach(id => {
         if (baseGrid2[id] && baseGrid2[id].players.length > 0) {
-            // Поскольку пул уже отсортирован змейкой по силе, первые два — самые мощные на этой точке
             let keep1 = baseGrid2[id].players.shift();
             let keep2 = baseGrid2[id].players.shift();
             
             dist.phase3[id] = { name: bName(id), players: [keep1, keep2].filter(Boolean) };
             
-            // Всех остальных («лишних») отправляем на бочки
             while (baseGrid2[id].players.length > 0) {
                 let extraPlayer = baseGrid2[id].players.shift();
                 if (extraPlayer) dist.phase3["barrels"].players.push(extraPlayer);
@@ -408,7 +405,7 @@ function calculateDistribution() {
         }
     });
 
-    // Сортируем игроков на Бочках по убыванию силы, чтобы карточка выглядела аккуратно
+    // Сортируем игроков на Бочках по убыванию силы
     if (dist.phase3["barrels"].players.length > 0) {
         dist.phase3["barrels"].players.sort((a, b) => {
             if (b.power !== a.power) return b.power - a.power;
@@ -416,12 +413,13 @@ function calculateDistribution() {
         });
     }
 
-    // Очищаем пустые карточки строений на финальном этапе, если людей не хватило
+    // Очищаем пустые карточки строений на финальном этапе
     Object.keys(dist.phase3).forEach(key => {
         if (dist.phase3[key] && dist.phase3[key].players && dist.phase3[key].players.length === 0) {
             delete dist.phase3[key];
         }
     });
+
 
     // Принудительно выстраиваем правильный визуальный порядок вывода карточек на экран:
     let orderedDist = {};
