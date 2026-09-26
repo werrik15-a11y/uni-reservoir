@@ -12,7 +12,7 @@ const GOOGLE_SCRIPT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxWst
 const ADMIN_PASSWORD = "UNI_LEADER_2026";
 
 const buildingsData = [
-    { id: "center_res", name: "Центральный резервуар", time: "через 15 минут", capture: 9000, hold: 1200, bonus: "-", maxPlayers: 8 },
+    { id: "center_res", name: "Центральный резервуар", time: "через 15 минут", capture: 9000, hold: 1800, bonus: "-", maxPlayers: 8 },
     { id: "water_1", name: "Водоочистительный центр 1", time: "Сразу", capture: 6000, hold: 1200, bonus: "-", maxPlayers: 5 },
     { id: "water_2", name: "Водоочистительный центр 2", time: "Сразу", capture: 6000, hold: 1200, bonus: "-", maxPlayers: 5 },
     { id: "factory_1", name: "Водоперерабатывающий завод 1", time: "Сразу", capture: 3000, hold: 600, bonus: "-", maxPlayers: 3 },
