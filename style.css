@@ -118,58 +118,86 @@ nav button:hover:not(.active) {
     margin: 20px auto;
 }
 
-/* АДАПТИВНЫЕ ТАБЛИЦЫ */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-    background-color: var(--panel-bg);
-    border-radius: 8px;
-    overflow: hidden;
-    border: 1px solid var(--border-color);
-    font-size: 14px;
+/* ==========================================
+   АДАПТИВНЫЕ ТАБЛИЦЫ И МОБИЛЬНЫЕ КАРТОЧКИ
+   ========================================== */
+
+/* На телефонах превращаем строки таблицы в компактные блоки, чтобы ничего не прокручивалось */
+@media (max-width: 767px) {
+    table, thead, tbody, th, td, tr {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    
+    /* Скрываем шапку таблицы (Здание, Открытие, Захват), так как на телефонах она не нужна */
+    thead {
+        display: none;
+    }
+    
+    tr {
+        background-color: var(--panel-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        margin-bottom: 12px;
+        padding: 10px 15px;
+    }
+    
+    td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        font-size: 14px;
+        text-align: right;
+    }
+    
+    /* Убираем нижнюю линию у последнего свойства внутри карточки строения */
+    td:last-child {
+        border-bottom: none;
+    }
+    
+    /* Автоматически генерируем понятные подписи слева для каждого параметра на телефоне */
+    td:nth-of-type(1)::before { content: "Объект:"; font-weight: bold; color: var(--text-muted); }
+    td:nth-of-type(2)::before { content: "Открытие:"; color: var(--text-muted); }
+    td:nth-of-type(3)::before { content: "Захват:"; color: var(--text-muted); }
+    td:nth-of-type(4)::before { content: "Удержание:"; color: var(--text-muted); }
+    td:nth-of-type(5)::before { content: "Бонус:"; color: var(--text-muted); }
+    
+    /* Делаем название здания жирным и выравниваем по левому краю */
+    td:nth-of-type(1) {
+        font-size: 15px;
+        color: var(--accent-color);
+        justify-content: space-between;
+        text-align: left;
+    }
 }
 
-th, td {
-    padding: 10px 12px;
-    text-align: left;
-    border-bottom: 1px solid var(--border-color);
-}
+/* На компьютерах (экраны от 768px) возвращаем классическую красивую и широкую таблицу */
+@media (min-width: 768px) {
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+        background-color: var(--panel-bg);
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+        font-size: 14px;
+    }
 
-th {
-    background-color: rgba(255,255,255,0.02);
-    color: var(--text-muted);
-    font-weight: 600;
-}
+    th, td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+    }
 
-.btn {
-    background-color: var(--accent-color);
-    color: white;
-    border: none;
-    padding: 10px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 500;
-    font-size: 14px;
-}
-
-.btn-success { background-color: var(--success-color); }
-.btn-secondary { background-color: #21262d; border: 1px solid var(--border-color); color: var(--text-color); }
-
-.active-phase {
-    background-color: var(--success-color) !important;
-    border-color: var(--success-color) !important;
-    color: white !important;
-}
-
-input, select {
-    background-color: var(--bg-color);
-    border: 1px solid var(--border-color);
-    color: var(--text-color);
-    padding: 10px;
-    border-radius: 6px;
-    font-size: 14px;
-    box-sizing: border-box;
+    th {
+        background-color: rgba(255, 255, 255, 0.02);
+        color: var(--text-muted);
+        font-weight: 600;
+    }
 }
 
 /* АДАПТИВНАЯ КАРТА: На мобилках карты встанут на всю ширину сверху таблицы строений */
