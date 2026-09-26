@@ -460,7 +460,7 @@ function renderDistributionGrid() {
     if (!grid) return;
     let phaseKey = `phase${currentPhase}`;
     if (!lastDistribution[phaseKey]) {
-        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;">Нет активных данных. Заполните Google Таблицу.</div>`;
+        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;">Нет активных данных. Отметьте участников в Панели Управления.</div>`;
         return;
     }
 
@@ -489,4 +489,5 @@ function renderDistributionGrid() {
         `;
     }).join('');
 }
+
 
