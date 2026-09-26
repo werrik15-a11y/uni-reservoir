@@ -11,7 +11,6 @@ const GOOGLE_SCRIPT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxWst
 // Пароль лидера
 const ADMIN_PASSWORD = "UNI_LEADER_2026";
 
-
 const buildingsData = [
     { id: "center_res", name: "Центральный резервуар", time: "через 15 минут", capture: 9000, hold: 1200, bonus: "-", maxPlayers: 8 },
     { id: "water_1", name: "Водоочистительный центр 1", time: "Сразу", capture: 6000, hold: 1200, bonus: "-", maxPlayers: 5 },
@@ -37,11 +36,9 @@ window.onload = function() {
         return;
     }
 
-    // ТРЮК ОБХОДА КЭША: Добавляем к ссылке текущее время, чтобы браузер не брал её из кэша
-    // Это гарантирует обход ошибки CORS 307 и моментальную загрузку ников!
+    // Трюк обхода кэша для моментальной загрузки свежих ников
     const nocacheUrl = GOOGLE_SHEET_CSV_URL + (GOOGLE_SHEET_CSV_URL.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
 
-    // Скачиваем данные союза UNI напрямую без блокировок
     fetch(nocacheUrl)
         .then(response => {
             if (!response.ok) throw new Error('Ошибка получения данных таблицы');
@@ -51,66 +48,42 @@ window.onload = function() {
             parseGoogleSheetCSV(csvText);
             loadSavedAttendance();
             sortPlayers();
-            calculateDistribution(); // Сразу перерасчитываем тактическую сетку
+            calculateDistribution(); 
             
             renderBuildingsTable();
             renderAdminTable();
             updateCounters();
         })
         .catch(error => {
-            console.error('Ошибка CORS / Загрузки:', error);
-            alert('Сайту не удалось прочитать Google Таблицу напрямую. Пожалуйста, убедитесь, что вы открыли доступ в таблице: синяя кнопка Поделиться -> Общий доступ -> Все, у кого есть ссылка (Читатель)');
-            renderBuildingsTable();
+            console.error('Ошибка загрузки:', error);
         });
 };
 
-
-    fetch(GOOGLE_SHEET_CSV_URL)
-        .then(response => response.text())
-        .then(csvText => {
-            parseGoogleSheetCSV(csvText);
-            loadSavedAttendance();
-            sortPlayers();
-            calculateDistribution(); // Сразу считаем тактику для всех
-            renderBuildingsTable();
-            renderAdminTable();
-            updateCounters();
-        })
-        .catch(error => console.error(error));
-};
-
 function parseGoogleSheetCSV(text) {
-    // Разделяем полученный текст на строки
     const lines = text.split(/\r?\n/);
     players = [];
-
-    // Идем со 2-й строки (пропуская заголовки: Игрок, БМ, Очки, Статус)
     for (let i = 1; i < lines.length; i++) {
         if (!lines[i].trim()) continue;
-        
-        // Разбиваем строку на столбцы по запятой или точке с запятой
         const columns = lines[i].split(/[,;]/);
-        
-        // Проверяем, что в первом столбце есть имя игрока
         if (columns && columns[0].trim()) {
-            // Безопасно считываем статус из 4-го столбца (индекс 3)
             let rawStatus = columns[3] ? columns[3].trim() : '0';
             let statusValue = 'none';
-            
             if (rawStatus === '1') statusValue = 'main';
             if (rawStatus === '2') statusValue = 'reserve';
+
+            // Удаляем возможные пробелы из чисел (например "31 406" -> 31406)
+            let cleanPoints = columns[2] ? columns[2].replace(/\s+/g, '') : '0';
 
             players.push({
                 name: columns[0].trim(),
                 power: parseFloat(columns[1]) || 0,
-                points: parseInt(columns[2]) || 0,
+                points: parseInt(cleanPoints) || 0,
                 status: statusValue,  
                 attended: null   
             });
         }
     }
 }
-
 
 function loadSavedAttendance() {
     let saved = localStorage.getItem('uni_attendance');
@@ -181,7 +154,6 @@ function updateCounters() {
     if (document.getElementById('countReserve')) document.getElementById('countReserve').innerText = reserveCount;
 }
 
-// Функция переключения галки со встроенной мгновенной отправкой в Google Docs!
 function togglePlayerStatusAndSend(index) {
     const currentStatus = players[index].status;
     let nextStatus = 'none';
@@ -193,11 +165,10 @@ function togglePlayerStatusAndSend(index) {
     players[index].status = nextStatus;
     renderAdminTable();
     updateCounters();
-    calculateDistribution(); // Сразу перерасчитываем тактическую сетку на экране
+    calculateDistribution(); 
 
-    if (GOOGLE_SCRIPT_WEB_APP_URL.includes("СЮДА_ВСТАВЬТЕ")) return;
+    if (!GOOGLE_SCRIPT_WEB_APP_URL || GOOGLE_SCRIPT_WEB_APP_URL.includes("СЮДА_ВСТАВЬТЕ")) return;
 
-    // Отправляем изменения в облако Google Таблицы в фоновом режиме
     fetch(GOOGLE_SCRIPT_WEB_APP_URL, {
         method: "POST",
         mode: "no-cors",
@@ -211,7 +182,6 @@ function toggleAttendance(index, value) {
     saveAttendance();
     renderAdminTable();
 }
-
 
 // ==========================================
 // ШАГ 3: ЛОГИКА СПРАВОЧНОЙ ВКЛАДКИ И КАРТЫ
@@ -231,11 +201,9 @@ function renderBuildingsTable() {
     `).join('');
 }
 
-// Функции управления первой картой
 function openModal() { const m = document.getElementById('mapModal'); if(m) m.style.display = 'flex'; }
 function closeModal() { const m = document.getElementById('mapModal'); if(m) m.style.display = 'none'; }
-
-// Функции управления второй картой (Новые)
+// Функции управления второй картой
 function openModal2() { const m = document.getElementById('mapModal2'); if(m) m.style.display = 'flex'; }
 function closeModal2() { const m = document.getElementById('mapModal2'); if(m) m.style.display = 'none'; }
 
@@ -256,82 +224,84 @@ function switchPhase(phaseNumber) {
 // Главная функция расчета
 function calculateDistribution() {
     let activePlayers = players.filter(p => p.status === 'main');
-    if (activePlayers.length === 0) {
-        alert("Отметьте игроков зеленой галкой (Основа) в Панели Управления!");
-        return;
-    }
+    let reservePlayers = players.filter(p => p.status === 'reserve');
 
     let dist = { phase1: {}, phase2: {}, phase3: {} };
     let pool = [...activePlayers]; // Список уже идеально отсортирован (БМ + РР)
 
+    let reserveGroup = { name: "🟠 РЕЗЕРВ / ЗАМЕНА", players: reservePlayers };
+
     // --- ЭТАП 1: ДО 15 МИНУТ ---
-    // Солнечная станция: Топ-1 БМ (Капитан) + 2 средних игрока
-    let captain = pool.shift(); 
-    let phase1Solar = [captain];
     if (pool.length > 0) {
-        let mid = Math.floor(pool.length / 2);
-        phase1Solar.push(pool.splice(mid, 1)[0]);
-        if (pool.length > 0) phase1Solar.push(pool.splice(mid - 1, 1)[0]);
-    }
-    dist.phase1["solar"] = { name: "Солнечная станция", players: phase1Solar.filter(Boolean) };
+        let captain = pool.shift(); 
+        let phase1Solar = [captain];
+        if (pool.length > 0) {
+            let mid = Math.floor(pool.length / 2);
+            phase1Solar.push(pool.splice(mid, 1)[0]);
+            if (pool.length > 0) phase1Solar.push(pool.splice(mid - 1, 1)[0]);
+        }
+        dist.phase1["solar"] = { name: "Солнечная станция", players: phase1Solar.filter(Boolean) };
 
-    // Вертолетная площадка: забираем 3 игроков из оставшегося хвоста пула (самых слабых)
-    let phase1Heli = [];
-    for(let i=0; i<3; i++) { if(pool.length > 0) phase1Heli.push(pool.pop()); }
-    dist.phase1["heliport"] = { name: "Вертолетная площадка", players: phase1Heli };
+        let phase1Heli = [];
+        for(let i=0; i<3; i++) { if(pool.length > 0) phase1Heli.push(pool.pop()); }
+        dist.phase1["heliport"] = { name: "Вертолетная площадка", players: phase1Heli };
 
-    // Распределяем «Змейкой» всех оставшихся игроков по 6 основным линиям
-    let lines = ["water_1", "water_2", "factory_1", "factory_2", "factory_3", "factory_4"];
-    lines.forEach(id => {
-        let name = id.includes("water") ? "Водоочистительный центр " + id.slice(-1) : "Водоперерабатывающий завод " + id.slice(-1);
-        dist.phase1[id] = { name: name, players: [] };
-    });
+        let lines = ["water_1", "water_2", "factory_1", "factory_2", "factory_3", "factory_4"];
+        lines.forEach(id => {
+            let name = id.includes("water") ? "Водоочистительный центр " + id.slice(-1) : "Водоперерабатывающий завод " + id.slice(-1);
+            dist.phase1[id] = { name: name, players: [] };
+        });
 
-    let forward = true;
-    let idx = 0;
-    while (pool.length > 0) {
-        dist.phase1[lines[idx]].players.push(pool.shift());
-        if (forward) {
-            idx++;
-            if (idx >= lines.length) { idx = lines.length - 1; forward = false; }
-        } else {
-            idx--;
-            if (idx < 0) { idx = 0; forward = true; }
+        let forward = true;
+        let idx = 0;
+        while (pool.length > 0) {
+            dist.phase1[lines[idx]].players.push(pool.shift());
+            if (forward) {
+                idx++;
+                if (idx >= lines.length) { idx = lines.length - 1; forward = false; }
+            } else {
+                idx--;
+                if (idx < 0) { idx = 0; forward = true; }
+            }
         }
     }
 
+    dist.phase1["reserve_pool"] = reserveGroup;
+
     // --- ЭТАП 2: ДО 30 МИНУТ ---
     dist.phase2 = JSON.parse(JSON.stringify(dist.phase1));
-    
-    // Капитан перемещается в Центральный резервуар
-    dist.phase2["center_res"] = { name: "Центральный резервуар", players: [captain] };
-    
-    // Выделяем Топ-2, Топ-3 и Топ-4 под тактические спецобъекты со скрина
-    let top2 = activePlayers[1] || null;
-    let top3 = activePlayers[2] || null;
-    let top4 = activePlayers[3] || null;
-    
-    dist.phase2["solar"] = { name: "Солнечная станция", players: top2 ? [top2] : [] };
-    dist.phase2["military"] = { name: "Военный завод", players: top3 ? [top3] : [] };
-    dist.phase2["dev_complex"] = { name: "Комплекс разработки", players: top4 ? [top4] : [] };
+    if (activePlayers.length > 0) {
+        let captain = activePlayers[0];
+        dist.phase2["center_res"] = { name: "Центральный резервуар", players: [captain] };
+        
+        let top2 = activePlayers[1] || null;
+        let top3 = activePlayers[2] || null;
+        let top4 = activePlayers[3] || null;
+        
+        if(top2) dist.phase2["solar"] = { name: "Солнечная станция", players: [top2] };
+        if(top3) dist.phase2["military"] = { name: "Военный завод", players: [top3] };
+        if(top4) dist.phase2["dev_complex"] = { name: "Комплекс разработки", players: [top4] };
+    }
 
     // --- ЭТАП 3: ДО КОНЦА ---
     dist.phase3 = JSON.parse(JSON.stringify(dist.phase2));
-    
-    // Формируем ударную группу ЛЕТУНОВ из топов
-    dist.phase3["leters"] = { name: "🚀 ЛЕТУНЫ", players: [top2, top3, top4].filter(Boolean) };
-    dist.phase3["solar"] = { name: "Солнечная станция", players: [{name: "— [Сбиваем захват]", power: 0, points: 0}] };
-    dist.phase3["military"] = { name: "Военный завод", players: [{name: "— [Сбиваем захват]", power: 0, points: 0}] };
-    dist.phase3["dev_complex"] = { name: "Комплекс разработки", players: [{name: "— [Сбиваем захват]", power: 0, points: 0}] };
+    if (activePlayers.length > 3) {
+        let top2 = activePlayers[1];
+        let top3 = activePlayers[2];
+        let top4 = activePlayers[3];
+        
+        dist.phase3["leters"] = { name: "🚀 ЛЕТУНЫ", players: [top2, top3, top4].filter(Boolean) };
+        dist.phase3["solar"] = { name: "Солнечная станция", players: [{name: "— [Сбиваем захват]", power: 0, points: 0}] };
+        dist.phase3["military"] = { name: "Военный завод", players: [{name: "— [Сбиваем захват]", power: 0, points: 0}] };
+        dist.phase3["dev_complex"] = { name: "Комплекс разработки", players: [{name: "— [Сбиваем захват]", power: 0, points: 0}] };
 
-    // Самые слабые по БМ игроки (последние 30% от состава) уходят закрывать бочки
-    let totalAct = activePlayers.length;
-    let barrelCount = Math.floor(totalAct * 0.3);
-    let barrelPlayers = activePlayers.slice(totalAct - barrelCount);
-    dist.phase3["barrels"] = { name: "📦 Бочки", players: barrelPlayers };
+        let totalAct = activePlayers.length;
+        let barrelCount = Math.floor(totalAct * 0.3);
+        let barrelPlayers = activePlayers.slice(totalAct - barrelCount);
+        dist.phase3["barrels"] = { name: "📦 Бочки", players: barrelPlayers };
+    }
 
     lastDistribution = dist;
-    localStorage.setItem('uni_distribution', JSON.stringify(lastDistribution));
     renderDistributionGrid();
 }
 
@@ -341,7 +311,7 @@ function renderDistributionGrid() {
     if (!grid) return;
     let phaseKey = `phase${currentPhase}`;
     if (!lastDistribution[phaseKey]) {
-        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;">Нажмите кнопку «⚡ Рассчитать тактику» выше.</div>`;
+        grid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;">Нет активных данных. Заполните Google Таблицу.</div>`;
         return;
     }
 
@@ -352,14 +322,8 @@ function renderDistributionGrid() {
         
         let totalPower = group.players.reduce((sum, p) => sum + (p.power || 0), 0);
         let playersHtml = group.players.map(p => {
-            // В карточках распределения пишем БМ, а если её нет — пишем очки РР в скобках
             let valDisplay = p.power > 0 ? p.power : (p.points > 0 ? `(${p.points.toLocaleString()})` : '');
-            return `
-                <div class="player-row">
-                    <span>👤 ${p.name}</span>
-                    <span style="color: var(--text-muted); font-size:13px;">${valDisplay}</span>
-                </div>
-            `;
+            return `<div class="player-row"><span>👤 ${p.name}</span><span style="color: var(--text-muted); font-size:13px;">${valDisplay}</span></div>`;
         }).join('');
 
         let nicks = group.players.map(p => p.name).filter(n => !n.includes('—')).join(' ');
@@ -371,9 +335,8 @@ function renderDistributionGrid() {
                     <div class="building-power">${totalPower > 0 ? totalPower.toFixed(1) : ''}</div>
                 </div>
                 <div style="margin-bottom: 15px;">${playersHtml}</div>
-                ${totalPower > 0 || group.players.some(p => p.points > 0) ? `<button class="copy-btn" onclick="navigator.clipboard.writeText('\${nicks}'); alert('Ники скопированы!');">📋 Копировать состав</button>` : ''}
+                ${totalPower > 0 || key === 'reserve_pool' ? `<button class="copy-btn" onclick="navigator.clipboard.writeText('\${nicks}'); alert('Ники скопированы!');">📋 Копировать состав</button>` : ''}
             </div>
         `;
     }).join('');
 }
-
