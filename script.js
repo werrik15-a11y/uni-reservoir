@@ -184,6 +184,39 @@ function toggleAttendance(index, value) {
 }
 
 // ==========================================
+// ШАГ 2.1: ФУНКЦИЯ ОБНУЛЕНИЯ ГАЛОК ДЛЯ GOOGLE DOCS
+// ==========================================
+
+// Функция полного сброса всех галок основы и резерва в облаке Google
+function resetAllStatuses() {
+    if (confirm("Вы точно хотите обнулить списки основы и резерва? Это действие сбросит все галки у игроков на сайте и очистит Google Таблицу.")) {
+        
+        // 1. Мгновенно очищаем статусы на экране админки, чтобы лидер сразу видел результат
+        players.forEach(p => { p.status = 'none'; });
+        renderAdminTable();
+        updateCounters();
+        calculateDistribution(); // Очищаем тактическую сетку распределения
+
+        if (!GOOGLE_SCRIPT_WEB_APP_URL || GOOGLE_SCRIPT_WEB_APP_URL.includes("СЮДА_ВСТАВЬТЕ")) return;
+
+        // 2. Отправляем скрытую команду "reset_all" вашему роботу в Google Таблицу
+        fetch(GOOGLE_SCRIPT_WEB_APP_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "reset_all" })
+        })
+        .then(() => {
+            alert("Все галки успешно обнулены в Google Таблице!");
+        })
+        .catch(err => {
+            console.error("Ошибка глобального сброса в облаке:", err);
+            alert("Галки на экране сброшены, но произошла ошибка при очистке Google Таблицы. Проверьте скрипт.");
+        });
+    }
+}
+
+// ==========================================
 // ШАГ 3: ЛОГИКА СПРАВОЧНОЙ ВКЛАДКИ И КАРТЫ
 // ==========================================
 
