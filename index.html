@@ -114,23 +114,22 @@
     <div id="mapModal" class="modal" onclick="closeModal()"><img src="map.jpg" alt="Карта Крупно"></div>
     <div id="mapModal2" class="modal" onclick="closeModal2()"><img src="map2.jpg" alt="Карта 2 Крупно"></div>
 
-    <!-- Встроенная защита вкладок, запрашивающая пароль на лету -->
+    <!-- Встроенная защита вкладок с вечным запоминанием устройства лидера -->
     <script>
         function safeSwitchTab(tabId, buttonElement) {
             // Если лидер кликает на Панель Управления, требуем ввод пароля
             if (tabId === 'admin') {
-                // Проверяем, авторизован ли пользователь в этой сессии браузера
-                let isAuthorized = sessionStorage.getItem('uni_admin_authed');
+                // Меняем кратковременную память на долговременную localStorage
+                let isAuthorized = localStorage.getItem('uni_admin_authed');
                 
                 if (!isAuthorized) {
-                    // Запрашиваем глобальную переменную пароля из script.js
                     let pass = prompt("Введите секретный пароль лидера союза UNI для управления галками:");
                     
                     if (pass === null) return; // Нажали "Отмена"
                     
-                    // Сверяем с паролем (чтобы избежать задержки загрузки script.js, дублируем проверку)
                     if (pass === "UNI_LEADER_2026") {
-                        sessionStorage.setItem('uni_admin_authed', 'true');
+                        // Запоминаем это устройство навсегда
+                        localStorage.setItem('uni_admin_authed', 'true');
                     } else {
                         alert("Неверный пароль лидера! Доступ заблокирован.");
                         return;
@@ -147,6 +146,7 @@
             if (buttonElement) buttonElement.classList.add('active');
         }
     </script>
+
     <script src="script.js"></script>
 </body>
 </html>
